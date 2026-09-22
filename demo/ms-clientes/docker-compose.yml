@@ -1,0 +1,12 @@
+services:
+  ms-clientes:
+    build: .
+    container_name: entra-demo-ms-clientes
+    ports:
+      - "8081:8081"
+    networks:
+      - entra-demo-net
+
+networks:
+  entra-demo-net:
+    external: true

@@ -1,0 +1,16 @@
+services:
+  bff:
+    build: .
+    container_name: entra-demo-bff
+    ports:
+      - "8080:8080"
+    environment:
+      ENTRA_ISSUER_URI: ${ENTRA_ISSUER_URI}
+      ENTRA_API_CLIENT_ID: ${ENTRA_API_CLIENT_ID}
+      MS_CLIENTES_BASE_URL: ${MS_CLIENTES_BASE_URL:-http://ms-clientes:8081}
+    networks:
+      - entra-demo-net
+
+networks:
+  entra-demo-net:
+    external: true

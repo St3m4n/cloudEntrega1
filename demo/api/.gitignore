@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Docker ###
+.env.docker
+!.env.docker.example
+
 ### STS ###
 .apt_generated
 .classpath
