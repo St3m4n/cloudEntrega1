@@ -9,6 +9,7 @@ export default function App() {
   const { instance, accounts, inProgress } = useMsal();
   const [salida, setSalida] = useState('');
   const [ocupado, setOcupado] = useState(false);
+  const [tokenDebug, setTokenDebug] = useState('');
 
   const account = accounts[0];
   const bloqueado =
@@ -42,10 +43,15 @@ export default function App() {
     if (!token.accessToken) {
       throw new Error('No se obtuvo access token');
     }
+    setTokenDebug(token.accessToken);
     setSalida(
       'Token de API obtenido. Vence: ' +
         (token.expiresOn?.toLocaleString() ?? 'Consultar metadatos'),
     );
+  }
+
+  async function copiarToken() {
+    await navigator.clipboard.writeText(tokenDebug);
   }
 
   async function consultar() {
@@ -90,6 +96,23 @@ export default function App() {
       <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
         {salida}
       </pre>
+
+      {tokenDebug && (
+        <div style={{ marginTop: 20 }}>
+          <p>
+            <strong>Access token (solo para pruebas locales):</strong>{' '}
+            <button onClick={() => void copiarToken()}>
+              Copiar token
+            </button>
+          </p>
+          <textarea
+            readOnly
+            value={tokenDebug}
+            rows={6}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+          />
+        </div>
+      )}
     </main>
   );
 }
