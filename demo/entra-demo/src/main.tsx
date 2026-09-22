@@ -1,10 +1,19 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { createRoot } from 'react-dom/client';
+import { PublicClientApplication } from '@azure/msal-browser';
+import { MsalProvider } from '@azure/msal-react';
+import { msalConfig } from './authConfig';
+import App from './App';
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+const msal = new PublicClientApplication(msalConfig);
+
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error('Root element not found');
+}
+
+createRoot(rootElement).render(
+  <MsalProvider instance={msal}>
     <App />
-  </StrictMode>,
-)
+  </MsalProvider>,
+);
