@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { consultarApi } from '../api';
 import { mensajeDe, useBff, useCuenta } from '../bff';
+import { rolesDe, usePerfil } from '../auth/perfil';
 import { EncabezadoPagina } from '../components/ui';
 import { obtenerToken } from '../token';
 
 export function LabPage() {
   const { instance } = useMsal();
   const cuenta = useCuenta();
+  const perfil = usePerfil();
   const llamar = useBff();
 
   const [salida, setSalida] = useState('');
@@ -17,6 +19,7 @@ export function LabPage() {
 
   const apiLista = Boolean(import.meta.env.VITE_API_BASE_URL);
   const bffListo = Boolean(import.meta.env.VITE_BFF_BASE_URL);
+  const rolesAplicados = rolesDe(perfil.estado);
 
   async function ejecutar(accion: () => Promise<string>, destino: (texto: string) => void) {
     setOcupado(true);
@@ -54,6 +57,24 @@ export function LabPage() {
         titulo="Laboratorio"
         descripcion="Comprobaciones de las guías Parte 1 (Entra ID) y Parte 2 (BFF + microservicios)."
       />
+
+      {perfil.estado.tipo === 'listo' && (
+        <section className="seccion tarjeta">
+          <h2>Perfil recibido desde Entra ID</h2>
+          <p>Usuario: {perfil.estado.perfil.usuario ?? 'No informado'}</p>
+          <p>
+            Roles originales:{' '}
+            {perfil.estado.perfil.roles.length > 0
+              ? perfil.estado.perfil.roles.join(', ')
+              : 'ninguno'}
+          </p>
+          <p>
+            Perfil aplicado:{' '}
+            {rolesAplicados.join(', ') || 'sin perfil'}
+            {perfil.estado.perfil.roles.length === 0 && ' (por defecto)'}
+          </p>
+        </section>
+      )}
 
       <section className="seccion tarjeta">
         <h2>Comprobación Parte 1</h2>
