@@ -1,0 +1,12 @@
+services:
+  ms-pedidos360-catalogo:
+    build: .
+    container_name: pedidos360-catalogo
+    ports:
+      - "8082:8082"
+    networks:
+      - entra-demo-net
+
+networks:
+  entra-demo-net:
+    external: true

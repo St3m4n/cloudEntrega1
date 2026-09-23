@@ -1,8 +1,12 @@
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 import { PublicClientApplication } from '@azure/msal-browser';
 import { MsalProvider } from '@azure/msal-react';
+
 import { msalConfig } from './authConfig';
+import { PerfilProvider } from './auth/PerfilProvider';
 import App from './App';
+import './index.css';
 
 const msal = new PublicClientApplication(msalConfig);
 
@@ -14,6 +18,10 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <MsalProvider instance={msal}>
-    <App />
+    <BrowserRouter>
+      <PerfilProvider>
+        <App />
+      </PerfilProvider>
+    </BrowserRouter>
   </MsalProvider>,
 );
