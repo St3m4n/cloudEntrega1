@@ -8,7 +8,7 @@ export async function consultarApi(
   instance: IPublicClientApplication,
   account: AccountInfo,
 ): Promise<string> {
-  const base = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '');
+  const base = (import.meta.env.VITE_BFF_BASE_URL ?? import.meta.env.VITE_API_BASE_URL)?.replace(/\/$/, '');
 
   if (!base) {
     throw new Error(

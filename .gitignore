@@ -1,3 +1,14 @@
 info/alumno01.txt
 info/aplication.txt
 info/tenant.txt
+**/target/
+**/node_modules/
+**/dist/
+**/.env
+**/.env.local
+**/data/
+**/*.log
+**/terraform.tfstate*
+**/.terraform/
+**/*.tfvars
+tmp/

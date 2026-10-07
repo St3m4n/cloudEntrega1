@@ -1,13 +1,18 @@
 import { Link } from 'react-router';
+import { useEffect, useState } from 'react';
 import { rolesDe, usePerfil } from '../auth/perfil';
 import { ROLES, tieneAlgunRol } from '../auth/roles';
-import { useCuenta } from '../bff';
+import { mensajeDe, useBff, useCuenta } from '../bff';
 import { STOCK_BAJO, useProductos } from '../catalogo';
 import { OrderList } from '../components/orders/OrderList';
 import { Aviso, Cargando, EncabezadoPagina, Kpi } from '../components/ui';
-import type { Producto } from '../tipos';
+import type { Pedido, Producto } from '../tipos';
 
-const PENDIENTE = 'Requiere ms-pedidos360-orders';
+function usePanel<T>(ruta: string) {
+  const llamar = useBff(); const [datos, setDatos] = useState<T | null>(null); const [error, setError] = useState('');
+  useEffect(() => { let activo = true; llamar<T>(ruta).then(d => { if (activo) setDatos(d); }).catch(e => { if (activo) setError(mensajeDe(e)); }); return () => { activo = false; }; }, [llamar, ruta]);
+  return { datos, error };
+}
 
 export function DashboardPage() {
   const { estado, reintentar } = usePerfil();
@@ -67,6 +72,7 @@ function valorCatalogo(productos: Producto[] | null, error: string | null, calcu
 }
 
 function ResumenAdmin({ productos, error }: ResumenProps) {
+  const panel = usePanel<{ ordersCreated: number; sales: number }>('/api/report/kpis?range=last24h');
   return (
     <section className="seccion">
       <h2>Indicadores globales</h2>
@@ -76,10 +82,11 @@ function ResumenAdmin({ productos, error }: ResumenProps) {
           titulo="Unidades en stock"
           valor={valorCatalogo(productos, error, (p) => p.reduce((suma, x) => suma + x.stock, 0))}
         />
-        <Kpi titulo="Pedidos del día" valor="—" nota={PENDIENTE} />
-        <Kpi titulo="Ventas del día" valor="—" nota="Requiere ms-pedidos360-report" />
+        <Kpi titulo="Pedidos en 24 horas" valor={panel.datos?.ordersCreated ?? '…'} />
+        <Kpi titulo="Ventas en 24 horas (CLP)" valor={panel.datos?.sales ?? '…'} />
       </div>
       {error && <p className="texto-error">Catálogo: {error}</p>}
+      {panel.error && <p role="alert" className="texto-error">{panel.error}</p>}
       <p>
         <Link to="/reports">Ver reportes</Link> · <Link to="/audit">Ver auditoría</Link>
       </p>
@@ -88,17 +95,19 @@ function ResumenAdmin({ productos, error }: ResumenProps) {
 }
 
 function ResumenOperador({ productos, error }: ResumenProps) {
+  const panel = usePanel<Pedido[]>('/api/orders');
   return (
     <section className="seccion">
       <h2>Operación</h2>
       <div className="kpis">
-        <Kpi titulo="Pedidos en curso" valor="—" nota={PENDIENTE} />
-        <Kpi titulo="Pedidos pendientes de aceptar" valor="—" nota={PENDIENTE} />
+        <Kpi titulo="Pedidos en curso" valor={panel.datos?.filter(p => !['ENTREGADO', 'CANCELADO'].includes(p.estado)).length ?? '…'} />
+        <Kpi titulo="Pedidos pendientes de aceptar" valor={panel.datos?.filter(p => p.estado === 'CREADO').length ?? '…'} />
         <Kpi
           titulo={`Productos con stock bajo (< ${STOCK_BAJO})`}
           valor={valorCatalogo(productos, error, (p) => p.filter((x) => x.stock < STOCK_BAJO).length)}
         />
       </div>
+      {panel.error && <p role="alert" className="texto-error">{panel.error}</p>}
       <p>
         <Link to="/orders">Ir a pedidos</Link> · <Link to="/catalog">Ir al catálogo</Link>
       </p>
@@ -107,10 +116,12 @@ function ResumenOperador({ productos, error }: ResumenProps) {
 }
 
 function ResumenCliente() {
+  const panel = usePanel<Pedido[]>('/api/orders');
   return (
     <section className="seccion">
       <h2>Tus últimos pedidos</h2>
-      <OrderList pedidos={[]} />
+      {panel.error && <p role="alert" className="texto-error">{panel.error}</p>}
+      <OrderList pedidos={panel.datos?.slice(0, 5) ?? []} />
       <p>
         <Link to="/orders">Ver todos mis pedidos</Link>
       </p>

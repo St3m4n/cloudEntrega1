@@ -1,0 +1,27 @@
+{
+  "services": {
+    "orders": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/orders:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        ".env"
+      ],
+      "ports": [
+        "8083:8083"
+      ],
+      "volumes": [
+        "orders-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    }
+  },
+  "volumes": {
+    "orders-data": {}
+  }
+}

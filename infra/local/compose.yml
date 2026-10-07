@@ -1,0 +1,694 @@
+{
+  "services": {
+    "bff": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-bff"
+        }
+      },
+      "image": "pedidos360/bff:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8080:8080"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "bff-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "catalog": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-catalog"
+        }
+      },
+      "image": "pedidos360/catalog:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8082:8082"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "catalog-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "orders": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-orders"
+        }
+      },
+      "image": "pedidos360/orders:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8083:8083"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "orders-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "audit": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-audit"
+        }
+      },
+      "image": "pedidos360/audit:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8084:8084"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "audit-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "report": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-report"
+        }
+      },
+      "image": "pedidos360/report:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8085:8085"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "report-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "notify": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-notify"
+        }
+      },
+      "image": "pedidos360/notify:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8086:8086"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "notify-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "rabbit-admin": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-rabbit-admin"
+        }
+      },
+      "image": "pedidos360/rabbit-admin:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8087:8087"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "rabbit-admin-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "kafka-admin": {
+      "build": {
+        "context": "../..",
+        "dockerfile": "backend/Dockerfile",
+        "args": {
+          "SERVICE": "ms-pedidos360-kafka-admin"
+        }
+      },
+      "image": "pedidos360/kafka-admin:1.0.0",
+      "restart": "unless-stopped",
+      "environment": {
+        "ENTRA_ISSUER_URI": "${ENTRA_ISSUER_URI:?set issuer}",
+        "ENTRA_AUDIENCE": "${ENTRA_AUDIENCE:?set audience}",
+        "RABBIT_ADDRESSES": "rabbit1:5672,rabbit2:5672",
+        "RABBIT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBIT_PASSWORD": "${RABBIT_PASSWORD:?set password}",
+        "KAFKA_BOOTSTRAP_SERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "CATALOG_URL": "http://catalog:8082",
+        "ORDERS_URL": "http://orders:8083",
+        "AUDIT_URL": "http://audit:8084",
+        "REPORT_URL": "http://report:8085",
+        "RABBIT_ADMIN_URL": "http://rabbit-admin:8087",
+        "KAFKA_ADMIN_URL": "http://kafka-admin:8088",
+        "RABBIT_MANAGEMENT_URL": "http://rabbit1:15672",
+        "SMTP_HOST": "mailpit",
+        "CORS_ORIGINS": "${CORS_ORIGINS:-http://localhost:5173}"
+      },
+      "ports": [
+        "127.0.0.1:8088:8088"
+      ],
+      "extra_hosts": [
+        "host.docker.internal:host-gateway"
+      ],
+      "volumes": [
+        "kafka-admin-data:/app/data"
+      ],
+      "depends_on": {
+        "rabbit1": {
+          "condition": "service_healthy"
+        },
+        "rabbit2": {
+          "condition": "service_healthy"
+        },
+        "init-topics": {
+          "condition": "service_completed_successfully"
+        }
+      }
+    },
+    "mailpit": {
+      "image": "axllent/mailpit:v1.24",
+      "ports": [
+        "127.0.0.1:8025:8025"
+      ]
+    },
+    "rabbit1": {
+      "image": "rabbitmq:4.1-management",
+      "hostname": "rabbit1",
+      "restart": "unless-stopped",
+      "environment": {
+        "RABBITMQ_NODENAME": "rabbit@rabbit1",
+        "RABBITMQ_ERLANG_COOKIE": "${RABBIT_COOKIE:?set RABBIT_COOKIE}",
+        "RABBITMQ_DEFAULT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBITMQ_DEFAULT_PASS": "${RABBIT_PASSWORD:?set RABBIT_PASSWORD}"
+      },
+      "volumes": [
+        "rabbit1:/var/lib/rabbitmq",
+        "../mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "rabbitmqctl",
+          "eval",
+          "case length(rabbit_nodes:list_running()) of N when N >= 2 -> ok; _ -> erlang:error(cluster_not_ready) end."
+        ],
+        "interval": "10s",
+        "timeout": "10s",
+        "retries": 12
+      },
+      "ports": [
+        "5672:5672",
+        "${MANAGEMENT_BIND:-127.0.0.1}:15672:15672"
+      ]
+    },
+    "rabbit2": {
+      "image": "rabbitmq:4.1-management",
+      "hostname": "rabbit2",
+      "restart": "unless-stopped",
+      "environment": {
+        "RABBITMQ_NODENAME": "rabbit@rabbit2",
+        "RABBITMQ_ERLANG_COOKIE": "${RABBIT_COOKIE:?set RABBIT_COOKIE}",
+        "RABBITMQ_DEFAULT_USER": "${RABBIT_USER:-pedidos360}",
+        "RABBITMQ_DEFAULT_PASS": "${RABBIT_PASSWORD:?set RABBIT_PASSWORD}"
+      },
+      "volumes": [
+        "rabbit2:/var/lib/rabbitmq",
+        "../mq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "rabbitmqctl",
+          "eval",
+          "case length(rabbit_nodes:list_running()) of N when N >= 2 -> ok; _ -> erlang:error(cluster_not_ready) end."
+        ],
+        "interval": "10s",
+        "timeout": "10s",
+        "retries": 12
+      },
+      "ports": [
+        "5673:5672",
+        "${MANAGEMENT_BIND:-127.0.0.1}:15673:15672"
+      ]
+    },
+    "zk1": {
+      "image": "confluentinc/cp-zookeeper:7.7.1",
+      "hostname": "zk1",
+      "restart": "unless-stopped",
+      "environment": {
+        "ZOOKEEPER_SERVER_ID": "1",
+        "ZOOKEEPER_CLIENT_PORT": "2181",
+        "ZOOKEEPER_TICK_TIME": "2000",
+        "ZOOKEEPER_INIT_LIMIT": "10",
+        "ZOOKEEPER_SYNC_LIMIT": "5",
+        "ZOOKEEPER_SERVERS": "zk1:2888:3888;zk2:2888:3888;zk3:2888:3888"
+      },
+      "volumes": [
+        "zk1-data:/var/lib/zookeeper/data",
+        "zk1-log:/var/lib/zookeeper/log"
+      ]
+    },
+    "kafka1": {
+      "image": "confluentinc/cp-kafka:7.7.1",
+      "hostname": "kafka1",
+      "restart": "unless-stopped",
+      "depends_on": [
+        "zk1",
+        "zk2",
+        "zk3"
+      ],
+      "ports": [
+        "9092:9092"
+      ],
+      "environment": {
+        "KAFKA_BROKER_ID": "1",
+        "KAFKA_ZOOKEEPER_CONNECT": "zk1:2181,zk2:2181,zk3:2181",
+        "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092",
+        "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://kafka1:29092,EXTERNAL://${KAFKA_HOST:-localhost}:9092",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
+        "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
+        "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "3",
+        "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR": "3",
+        "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR": "2",
+        "KAFKA_DEFAULT_REPLICATION_FACTOR": "3",
+        "KAFKA_MIN_INSYNC_REPLICAS": "2",
+        "KAFKA_AUTO_CREATE_TOPICS_ENABLE": "false",
+        "KAFKA_HEAP_OPTS": "-Xms256m -Xmx512m"
+      },
+      "volumes": [
+        "kafka1:/var/lib/kafka/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "kafka-topics",
+          "--bootstrap-server",
+          "localhost:29092",
+          "--list"
+        ],
+        "interval": "15s",
+        "timeout": "10s",
+        "retries": 20
+      }
+    },
+    "zk2": {
+      "image": "confluentinc/cp-zookeeper:7.7.1",
+      "hostname": "zk2",
+      "restart": "unless-stopped",
+      "environment": {
+        "ZOOKEEPER_SERVER_ID": "2",
+        "ZOOKEEPER_CLIENT_PORT": "2181",
+        "ZOOKEEPER_TICK_TIME": "2000",
+        "ZOOKEEPER_INIT_LIMIT": "10",
+        "ZOOKEEPER_SYNC_LIMIT": "5",
+        "ZOOKEEPER_SERVERS": "zk1:2888:3888;zk2:2888:3888;zk3:2888:3888"
+      },
+      "volumes": [
+        "zk2-data:/var/lib/zookeeper/data",
+        "zk2-log:/var/lib/zookeeper/log"
+      ]
+    },
+    "kafka2": {
+      "image": "confluentinc/cp-kafka:7.7.1",
+      "hostname": "kafka2",
+      "restart": "unless-stopped",
+      "depends_on": [
+        "zk1",
+        "zk2",
+        "zk3"
+      ],
+      "ports": [
+        "9093:9093"
+      ],
+      "environment": {
+        "KAFKA_BROKER_ID": "2",
+        "KAFKA_ZOOKEEPER_CONNECT": "zk1:2181,zk2:2181,zk3:2181",
+        "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9093",
+        "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://kafka2:29092,EXTERNAL://${KAFKA_HOST:-localhost}:9093",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
+        "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
+        "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "3",
+        "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR": "3",
+        "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR": "2",
+        "KAFKA_DEFAULT_REPLICATION_FACTOR": "3",
+        "KAFKA_MIN_INSYNC_REPLICAS": "2",
+        "KAFKA_AUTO_CREATE_TOPICS_ENABLE": "false",
+        "KAFKA_HEAP_OPTS": "-Xms256m -Xmx512m"
+      },
+      "volumes": [
+        "kafka2:/var/lib/kafka/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "kafka-topics",
+          "--bootstrap-server",
+          "localhost:29092",
+          "--list"
+        ],
+        "interval": "15s",
+        "timeout": "10s",
+        "retries": 20
+      }
+    },
+    "zk3": {
+      "image": "confluentinc/cp-zookeeper:7.7.1",
+      "hostname": "zk3",
+      "restart": "unless-stopped",
+      "environment": {
+        "ZOOKEEPER_SERVER_ID": "3",
+        "ZOOKEEPER_CLIENT_PORT": "2181",
+        "ZOOKEEPER_TICK_TIME": "2000",
+        "ZOOKEEPER_INIT_LIMIT": "10",
+        "ZOOKEEPER_SYNC_LIMIT": "5",
+        "ZOOKEEPER_SERVERS": "zk1:2888:3888;zk2:2888:3888;zk3:2888:3888"
+      },
+      "volumes": [
+        "zk3-data:/var/lib/zookeeper/data",
+        "zk3-log:/var/lib/zookeeper/log"
+      ]
+    },
+    "kafka3": {
+      "image": "confluentinc/cp-kafka:7.7.1",
+      "hostname": "kafka3",
+      "restart": "unless-stopped",
+      "depends_on": [
+        "zk1",
+        "zk2",
+        "zk3"
+      ],
+      "ports": [
+        "9094:9094"
+      ],
+      "environment": {
+        "KAFKA_BROKER_ID": "3",
+        "KAFKA_ZOOKEEPER_CONNECT": "zk1:2181,zk2:2181,zk3:2181",
+        "KAFKA_LISTENERS": "INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9094",
+        "KAFKA_ADVERTISED_LISTENERS": "INTERNAL://kafka3:29092,EXTERNAL://${KAFKA_HOST:-localhost}:9094",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT",
+        "KAFKA_INTER_BROKER_LISTENER_NAME": "INTERNAL",
+        "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "3",
+        "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR": "3",
+        "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR": "2",
+        "KAFKA_DEFAULT_REPLICATION_FACTOR": "3",
+        "KAFKA_MIN_INSYNC_REPLICAS": "2",
+        "KAFKA_AUTO_CREATE_TOPICS_ENABLE": "false",
+        "KAFKA_HEAP_OPTS": "-Xms256m -Xmx512m"
+      },
+      "volumes": [
+        "kafka3:/var/lib/kafka/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "kafka-topics",
+          "--bootstrap-server",
+          "localhost:29092",
+          "--list"
+        ],
+        "interval": "15s",
+        "timeout": "10s",
+        "retries": 20
+      }
+    },
+    "init-topics": {
+      "image": "confluentinc/cp-kafka:7.7.1",
+      "depends_on": {
+        "kafka1": {
+          "condition": "service_healthy"
+        },
+        "kafka2": {
+          "condition": "service_healthy"
+        },
+        "kafka3": {
+          "condition": "service_healthy"
+        }
+      },
+      "entrypoint": [
+        "/bin/bash",
+        "-c"
+      ],
+      "command": [
+        "set -e\nkafka-topics --bootstrap-server kafka1:29092 --create --if-not-exists --topic orders.events --partitions 3 --replication-factor 3 --config cleanup.policy=delete --config retention.ms=604800000 --config min.insync.replicas=2\nkafka-topics --bootstrap-server kafka1:29092 --create --if-not-exists --topic audit.timeline --partitions 3 --replication-factor 3 --config cleanup.policy=compact,delete --config retention.ms=2592000000 --config min.insync.replicas=2\nkafka-topics --bootstrap-server kafka1:29092 --create --if-not-exists --topic orders.events.ms-pedidos360-report.DLT --partitions 3 --replication-factor 3 --config cleanup.policy=delete --config retention.ms=1209600000 --config min.insync.replicas=2\nkafka-topics --bootstrap-server kafka1:29092 --create --if-not-exists --topic audit.timeline.ms-pedidos360-audit.DLT --partitions 3 --replication-factor 3 --config cleanup.policy=delete --config retention.ms=1209600000 --config min.insync.replicas=2"
+      ],
+      "restart": "no"
+    },
+    "kafka-ui": {
+      "image": "provectuslabs/kafka-ui:v0.7.2",
+      "restart": "unless-stopped",
+      "ports": [
+        "127.0.0.1:8090:8080"
+      ],
+      "environment": {
+        "KAFKA_CLUSTERS_0_NAME": "pedidos360",
+        "KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS": "kafka1:29092,kafka2:29092,kafka3:29092",
+        "KAFKA_CLUSTERS_0_ZOOKEEPER": "zk1:2181,zk2:2181,zk3:2181"
+      },
+      "depends_on": [
+        "kafka1",
+        "kafka2",
+        "kafka3"
+      ]
+    }
+  },
+  "volumes": {
+    "bff-data": {},
+    "catalog-data": {},
+    "orders-data": {},
+    "audit-data": {},
+    "report-data": {},
+    "notify-data": {},
+    "rabbit-admin-data": {},
+    "kafka-admin-data": {},
+    "rabbit1": {},
+    "rabbit2": {},
+    "zk1-data": {},
+    "zk1-log": {},
+    "kafka1": {},
+    "zk2-data": {},
+    "zk2-log": {},
+    "kafka2": {},
+    "zk3-data": {},
+    "zk3-log": {},
+    "kafka3": {}
+  }
+}

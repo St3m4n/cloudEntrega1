@@ -29,4 +29,7 @@ export interface Pedido {
   total: number;
   estado: EstadoPedido;
   creadoEn: string;
+  email: string;
+  version: number;
+  items: { productId: number; nombre: string; quantity: number; precio: number }[];
 }

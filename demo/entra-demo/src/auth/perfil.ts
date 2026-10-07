@@ -24,9 +24,5 @@ export function usePerfil(): ContextoPerfil {
 export function rolesDe(estado: EstadoPerfil): string[] {
   if (estado.tipo !== 'listo') return [];
 
-  if (estado.perfil.roles.length === 0) return ['Admin'];
-
-  return estado.perfil.roles.map((rol) =>
-    rol === 'User' ? 'Admin' : rol,
-  );
+  return estado.perfil.roles;
 }

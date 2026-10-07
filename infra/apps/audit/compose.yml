@@ -1,0 +1,27 @@
+{
+  "services": {
+    "audit": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/audit:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        ".env"
+      ],
+      "ports": [
+        "8084:8084"
+      ],
+      "volumes": [
+        "audit-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    }
+  },
+  "volumes": {
+    "audit-data": {}
+  }
+}

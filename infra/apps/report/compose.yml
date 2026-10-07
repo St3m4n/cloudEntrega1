@@ -1,0 +1,27 @@
+{
+  "services": {
+    "report": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/report:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        ".env"
+      ],
+      "ports": [
+        "8085:8085"
+      ],
+      "volumes": [
+        "report-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    }
+  },
+  "volumes": {
+    "report-data": {}
+  }
+}

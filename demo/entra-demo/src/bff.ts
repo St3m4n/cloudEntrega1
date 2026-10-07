@@ -50,8 +50,10 @@ async function llamarBff<T>(
 
   if (!respuesta.ok) {
     const detalle = await respuesta.text();
+    let razon = '';
+    try { razon = (JSON.parse(detalle) as { detail?: string }).detail ?? ''; } catch { /* Non-JSON upstream error */ }
     throw new Error(
-      MENSAJES[respuesta.status] ??
+      (razon || MENSAJES[respuesta.status]) ??
         `Error ${respuesta.status}: ${detalle || respuesta.statusText}`,
     );
   }

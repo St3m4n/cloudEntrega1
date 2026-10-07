@@ -7,8 +7,7 @@ export function OrderList({ pedidos }: { pedidos: Pedido[] }) {
   if (pedidos.length === 0) {
     return (
       <EstadoVacio titulo="No hay pedidos para mostrar">
-        Los pedidos se cargarán desde ms-pedidos360-orders a través del BFF cuando ese
-        microservicio esté disponible.
+        No hay pedidos en el rango seleccionado.
       </EstadoVacio>
     );
   }
