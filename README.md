@@ -65,7 +65,7 @@ Los endpoints OpenAPI `/v3/api-docs` y Swagger `/swagger-ui/index.html` requiere
 
 Ver [guía de despliegue](infra/docs/AWS.md), [contratos HTTP y eventos](infra/docs/CONTRATOS.md) y [matriz del caso](infra/docs/CUMPLIMIENTO.md).
 
-Los resultados locales y lo que falta probar en cloud están en [registro de validación](infra/docs/VALIDACION.md).
+El procedimiento para repetir las pruebas está en la [guía de pruebas](infra/docs/PRUEBAS.md). Los resultados locales y lo que falta probar en cloud están en el [registro de validación](infra/docs/VALIDACION.md).
 
 `infra/aws/cloudformation.json` define diez EC2 (ocho aplicaciones y dos hosts de mensajería), RDS Oracle, grupos de seguridad, roles de EC2, ALB privado, VPC Link y API Gateway con authorizer JWT. Usa una VPC existente con dos subredes privadas en diferentes zonas. La plantilla **no instala las aplicaciones automáticamente**: prepara las máquinas y la red; las imágenes y Compose se despliegan siguiendo la guía. Crear el stack genera costos; no se ha ejecutado contra una cuenta AWS.
 
