@@ -27,6 +27,16 @@ La integración usa API Gateway -> VPC Link -> listener ALB privado -> BFF:8080.
 
 Security Groups: Gateway/VPC Link puede llamar al ALB; ALB solo entra al BFF. Los servicios hablan entre ellos en 8080-8088; solo las EC2 de apps acceden a RDS:1521, Rabbit:5672-5673/15672-15673 y Kafka:9092-9094. Las EC2 no tienen IP pública. No exponer Zookeeper, Kafka UI ni panel RabbitMQ a Internet.
 
+### Variante AWS Academy (una instancia)
+
+AWS Academy no permite crear roles IAM (`iam:CreateRole`), limita las EC2 a `t3.large` y solo incluye la VPC por defecto, sin NAT. Para ese entorno usar `infra/aws/cloudformation-academy.json`: una EC2 `t3.large` con `LabInstanceProfile`, Docker y Compose donde corre todo el stack (ocho servicios, dos nodos RabbitMQ y Kafka), RDS Oracle sin acceso público, ALB interno, VPC Link y el mismo API Gateway con authorizer JWT. La EC2 recibe IP pública solo para salida; su Security Group acepta únicamente 8080 desde el ALB y Oracle acepta 1521 solo desde la EC2. Se administra con Session Manager. RDS se crea sin protección de borrado ni snapshot final para poder limpiar el laboratorio.
+
+```bash
+aws cloudformation deploy --template-file infra/aws/cloudformation-academy.json --stack-name pedidos360 --region us-east-1 --parameter-overrides VpcId=vpc-REPLACE Subnets=subnet-ONE,subnet-TWO EntraIssuer=https://login.microsoftonline.com/TENANT/v2.0 EntraAudience=EXACT_API_AUD
+```
+
+Elegir dos subredes de zonas distintas y evitar `use1-az3`, que no admite VPC Link en `us-east-1`. Si la cuenta Academy rechaza RDS Oracle, el stack se revierte completo.
+
 ## RDS Oracle
 
 Usar el endpoint privado de `OracleEndpoint`, puerto 1521, nombre de BD `P360`. Amazon RDS admite Oracle; este cambio de ubicación conserva el motor del caso, aunque elimina OCI de la arquitectura original. Ver [RDS Oracle](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Oracle.html).

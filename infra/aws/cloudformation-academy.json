@@ -1,0 +1,451 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Pedidos360 en AWS Academy: una EC2 con Docker Compose (8 servicios, RabbitMQ x2, Kafka x3), RDS Oracle y API Gateway HTTP API con JWT de Entra ID.",
+  "Parameters": {
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "Subnets": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Dos subredes de la VPC en zonas distintas (evitar use1-az3). La EC2 usa la primera."
+    },
+    "AmiId": {
+      "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+      "Default": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+    },
+    "InstanceProfile": {
+      "Type": "String",
+      "Default": "LabInstanceProfile",
+      "Description": "Perfil existente; AWS Academy no permite crear roles IAM."
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t3.large",
+      "AllowedValues": [
+        "t3.medium",
+        "t3.large"
+      ]
+    },
+    "DbInstanceClass": {
+      "Type": "String",
+      "Default": "db.t3.medium",
+      "AllowedValues": [
+        "db.t3.small",
+        "db.t3.medium"
+      ]
+    },
+    "EntraIssuer": {
+      "Type": "String"
+    },
+    "EntraAudience": {
+      "Type": "String"
+    },
+    "FrontendOrigin": {
+      "Type": "String",
+      "Default": "http://localhost:5173"
+    }
+  },
+  "Resources": {
+    "AppSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Pedidos360 EC2",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "DatabaseSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Pedidos360 RDS Oracle",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "AlbSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Pedidos360 ALB interno",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "LinkSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Pedidos360 VPC Link",
+        "VpcId": {
+          "Ref": "VpcId"
+        }
+      }
+    },
+    "AlbToBff": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "AppSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "AlbSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8080,
+        "ToPort": 8080
+      }
+    },
+    "LinkToAlb": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "AlbSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "LinkSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 80,
+        "ToPort": 80
+      }
+    },
+    "OracleFromApp": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "DatabaseSG"
+        },
+        "SourceSecurityGroupId": {
+          "Ref": "AppSG"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 1521,
+        "ToPort": 1521
+      }
+    },
+    "AppInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "AmiId"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "IamInstanceProfile": {
+          "Ref": "InstanceProfile"
+        },
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "SubnetId": {
+              "Fn::Select": [
+                0,
+                {
+                  "Ref": "Subnets"
+                }
+              ]
+            },
+            "GroupSet": [
+              {
+                "Ref": "AppSG"
+              }
+            ],
+            "AssociatePublicIpAddress": true
+          }
+        ],
+        "MetadataOptions": {
+          "HttpTokens": "required"
+        },
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvda",
+            "Ebs": {
+              "VolumeSize": 40,
+              "VolumeType": "gp3",
+              "Encrypted": true
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker git\nsystemctl enable --now docker\nusermod -aG docker ssm-user 2>/dev/null || true\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n# Swap de respaldo: el stack completo usa ~5 GB de los 8 GB de una t3.large.\nif [ ! -f /swapfile ]; then\n  dd if=/dev/zero of=/swapfile bs=1M count=2048\n  chmod 600 /swapfile\n  mkswap /swapfile\n  swapon /swapfile\n  echo '/swapfile none swap sw 0 0' >> /etc/fstab\nfi\n"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "pedidos360"
+          }
+        ]
+      }
+    },
+    "DbSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Pedidos360 Oracle",
+        "SubnetIds": {
+          "Ref": "Subnets"
+        }
+      }
+    },
+    "Oracle": {
+      "Type": "AWS::RDS::DBInstance",
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": "Delete",
+      "Properties": {
+        "Engine": "oracle-se2",
+        "LicenseModel": "license-included",
+        "DBInstanceClass": {
+          "Ref": "DbInstanceClass"
+        },
+        "AllocatedStorage": "20",
+        "StorageType": "gp3",
+        "StorageEncrypted": true,
+        "DBName": "P360",
+        "MasterUsername": "p360master",
+        "ManageMasterUserPassword": true,
+        "DBSubnetGroupName": {
+          "Ref": "DbSubnetGroup"
+        },
+        "VPCSecurityGroups": [
+          {
+            "Ref": "DatabaseSG"
+          }
+        ],
+        "PubliclyAccessible": false,
+        "MultiAZ": false,
+        "BackupRetentionPeriod": 1,
+        "DeletionProtection": false
+      }
+    },
+    "Alb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme": "internal",
+        "Type": "application",
+        "Subnets": {
+          "Ref": "Subnets"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "AlbSG"
+          }
+        ]
+      }
+    },
+    "TargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "Port": 8080,
+        "Protocol": "HTTP",
+        "TargetType": "instance",
+        "HealthCheckPath": "/actuator/health",
+        "Targets": [
+          {
+            "Id": {
+              "Ref": "AppInstance"
+            },
+            "Port": 8080
+          }
+        ]
+      }
+    },
+    "Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "LoadBalancerArn": {
+          "Ref": "Alb"
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            }
+          }
+        ]
+      }
+    },
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "pedidos360",
+        "ProtocolType": "HTTP",
+        "CorsConfiguration": {
+          "AllowOrigins": [
+            {
+              "Ref": "FrontendOrigin"
+            }
+          ],
+          "AllowHeaders": [
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-Correlation-Id"
+          ],
+          "AllowMethods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS"
+          ]
+        }
+      }
+    },
+    "JwtAuthorizer": {
+      "Type": "AWS::ApiGatewayV2::Authorizer",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "Name": "entra-jwt",
+        "AuthorizerType": "JWT",
+        "IdentitySource": [
+          "$request.header.Authorization"
+        ],
+        "JwtConfiguration": {
+          "Issuer": {
+            "Ref": "EntraIssuer"
+          },
+          "Audience": [
+            {
+              "Ref": "EntraAudience"
+            }
+          ]
+        }
+      }
+    },
+    "VpcLink": {
+      "Type": "AWS::ApiGatewayV2::VpcLink",
+      "Properties": {
+        "Name": "pedidos360",
+        "SubnetIds": {
+          "Ref": "Subnets"
+        },
+        "SecurityGroupIds": [
+          {
+            "Ref": "LinkSG"
+          }
+        ]
+      }
+    },
+    "Integration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "IntegrationUri": {
+          "Ref": "Listener"
+        },
+        "ConnectionType": "VPC_LINK",
+        "ConnectionId": {
+          "Ref": "VpcLink"
+        },
+        "PayloadFormatVersion": "1.0",
+        "RequestParameters": {
+          "overwrite:path": "$request.path"
+        }
+      }
+    },
+    "RouteRoot": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "ANY /api",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteApi": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "ANY /api/{proxy+}",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "Stage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 100,
+          "ThrottlingRateLimit": 50
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ApiUrl": {
+      "Value": {
+        "Fn::GetAtt": [
+          "HttpApi",
+          "ApiEndpoint"
+        ]
+      }
+    },
+    "InstanceId": {
+      "Value": {
+        "Ref": "AppInstance"
+      }
+    },
+    "InstancePrivateIp": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AppInstance",
+          "PrivateIp"
+        ]
+      }
+    },
+    "OracleEndpoint": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Oracle",
+          "Endpoint.Address"
+        ]
+      }
+    },
+    "MasterSecretArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Oracle",
+          "MasterUserSecret.SecretArn"
+        ]
+      }
+    }
+  }
+}
