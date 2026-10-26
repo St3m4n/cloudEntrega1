@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .anyRequest().denyAll())
             .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter))).build();
     }
-    @Bean CorsConfigurationSource cors(@Value("${app.cors-origins}") String origins) {
+    @Bean CorsConfigurationSource corsConfigurationSource(@Value("${app.cors-origins}") String origins) {
         var c = new CorsConfiguration(); c.setAllowedOrigins(Arrays.asList(origins.split(",")));
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         c.setAllowedHeaders(List.of("Authorization","Content-Type","Idempotency-Key","X-Correlation-Id"));
