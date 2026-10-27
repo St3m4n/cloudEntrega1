@@ -8,7 +8,11 @@ export const msalConfig: Configuration = {
       import.meta.env.VITE_ENTRA_TENANT_ID,
     redirectUri:
       window.location.origin + '/redirect.html',
-    postLogoutRedirectUri: window.location.origin,
+    // The popup logout must return through the MSAL bridge so it can notify
+    // the main window and close itself. The main window redirect is supplied
+    // by Layout after the server-side sign-out completes.
+    postLogoutRedirectUri:
+      window.location.origin + '/redirect.html',
   },
   cache: {
     cacheLocation: 'sessionStorage',

@@ -15,7 +15,12 @@ export function Layout() {
 
   async function salir() {
     if (!cuenta) return;
-    await instance.logoutPopup({ account: cuenta });
+    await instance.logoutPopup({
+      account: cuenta,
+      // redirect.html relays the popup completion to this window and lets
+      // MSAL close the popup instead of leaving the application open there.
+      mainWindowRedirectUri: window.location.origin + '/login',
+    });
     navigate('/login', { replace: true });
   }
 
