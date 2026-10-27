@@ -90,8 +90,10 @@ r['HttpApi']={'Type':'AWS::ApiGatewayV2::Api','Properties':{'Name':'pedidos360',
 r['JwtAuthorizer']={'Type':'AWS::ApiGatewayV2::Authorizer','Properties':{'ApiId':ref('HttpApi'),'Name':'entra-jwt','AuthorizerType':'JWT','IdentitySource':['$request.header.Authorization'],'JwtConfiguration':{'Issuer':ref('EntraIssuer'),'Audience':[ref('EntraAudience')]}}}
 r['VpcLink']={'Type':'AWS::ApiGatewayV2::VpcLink','Properties':{'Name':'pedidos360','SubnetIds':ref('PrivateSubnets'),'SecurityGroupIds':[ref('LinkSG')]}}
 r['Integration']={'Type':'AWS::ApiGatewayV2::Integration','Properties':{'ApiId':ref('HttpApi'),'IntegrationType':'HTTP_PROXY','IntegrationMethod':'ANY','IntegrationUri':ref('Listener'),'ConnectionType':'VPC_LINK','ConnectionId':ref('VpcLink'),'PayloadFormatVersion':'1.0','RequestParameters':{'overwrite:path':'$request.path'}}}
-for logical,path in [('Root','ANY /api'),('Api','ANY /api/{proxy+}')]:
-    r['Route'+logical]={'Type':'AWS::ApiGatewayV2::Route','Properties':{'ApiId':ref('HttpApi'),'RouteKey':path,'AuthorizationType':'JWT','AuthorizationScopes':['access_as_user'],'AuthorizerId':ref('JwtAuthorizer'),'Target':sub('integrations/${Integration}')}}
+for logical,path in [('Root','/api'),('Api','/api/{proxy+}')]:
+    for method in ('GET','POST','PUT','DELETE'):
+        route_name = 'Route' + logical + method.title()
+        r[route_name]={'Type':'AWS::ApiGatewayV2::Route','Properties':{'ApiId':ref('HttpApi'),'RouteKey':method+' '+path,'AuthorizationType':'JWT','AuthorizationScopes':['access_as_user'],'AuthorizerId':ref('JwtAuthorizer'),'Target':sub('integrations/${Integration}')}}
 r['Stage']={'Type':'AWS::ApiGatewayV2::Stage','Properties':{'ApiId':ref('HttpApi'),'StageName':'$default','AutoDeploy':True,'DefaultRouteSettings':{'ThrottlingBurstLimit':100,'ThrottlingRateLimit':50}}}
 t['Outputs']['ApiUrl']={'Value':att('HttpApi','ApiEndpoint')}
 t['Outputs']['OracleEndpoint']={'Value':att('Oracle','Endpoint.Address')}

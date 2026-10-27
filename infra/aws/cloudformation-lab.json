@@ -573,13 +573,13 @@
         }
       }
     },
-    "RouteRoot": {
+    "RouteRootGet": {
       "Type": "AWS::ApiGatewayV2::Route",
       "Properties": {
         "ApiId": {
           "Ref": "HttpApi"
         },
-        "RouteKey": "ANY /api",
+        "RouteKey": "GET /api",
         "AuthorizationType": "JWT",
         "AuthorizationScopes": [
           "access_as_user"
@@ -592,13 +592,127 @@
         }
       }
     },
-    "RouteApi": {
+    "RouteRootPost": {
       "Type": "AWS::ApiGatewayV2::Route",
       "Properties": {
         "ApiId": {
           "Ref": "HttpApi"
         },
-        "RouteKey": "ANY /api/{proxy+}",
+        "RouteKey": "POST /api",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteRootPut": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "PUT /api",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteRootDelete": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "DELETE /api",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteApiGet": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "GET /api/{proxy+}",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteApiPost": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "POST /api/{proxy+}",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteApiPut": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "PUT /api/{proxy+}",
+        "AuthorizationType": "JWT",
+        "AuthorizationScopes": [
+          "access_as_user"
+        ],
+        "AuthorizerId": {
+          "Ref": "JwtAuthorizer"
+        },
+        "Target": {
+          "Fn::Sub": "integrations/${Integration}"
+        }
+      }
+    },
+    "RouteApiDelete": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "DELETE /api/{proxy+}",
         "AuthorizationType": "JWT",
         "AuthorizationScopes": [
           "access_as_user"
