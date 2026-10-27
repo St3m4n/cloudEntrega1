@@ -42,3 +42,14 @@ Se eliminaron los tres servicios del prototipo `demo`, el laboratorio del fronte
 - El usuario pidió cerrar al terminar la clase. Se cancelaron los comandos de arranque, se solicitó detener las tres EC2 y se autorizó eliminar el stack vacío. CloudFormation confirmó DELETE_IN_PROGRESS.
 - No se inicializaron esquemas ni se desplegaron las aplicaciones en este ensayo. Quedan pendientes RDS, ocho servicios en ejecución, JWT real, flujo Gateway, colas/DLQ, Kafka y Mailpit. No afirmar que AWS está listo para la presentación.
 - Cierre comprobado: CloudFormation DELETE_COMPLETE. No quedan EC2 Pedidos360 pendientes/activas/detenidas, instancias RDS, balanceadores ni IP elástica asignada. Los NAT del ensayo figuran deleted. Se eliminó `/pedidos360/lab/runtime` de Parameter Store. Se conservan código, configuración local ignorada e imágenes ECR (publicación de los ocho servicios con tag `mvp-20261008` completada).
+
+## Ensayo local de persistencia RabbitMQ - 27 de octubre de 2026
+
+- Docker Desktop Linux quedó operativo y `infra/local/compose.yml` pasó `docker compose config --quiet`.
+- Se construyeron las ocho imágenes Java y se levantaron los servicios, RabbitMQ, Zookeeper, Kafka, Kafka UI y Mailpit.
+- El puerto 8080 estaba ocupado por un contenedor externo (`datto-backend`), que no se detuvo. Para el ensayo se usó un override ignorado en `tmp/local-override.yml` y el BFF quedó disponible en `http://localhost:18080`.
+- Las seis colas RabbitMQ quedaron declaradas: `q.cmd.email`, `q.cmd.kitchen`, `q.cmd.invoice` y sus tres DLQ.
+- Con `notify` detenido se publicó un `EmailRequested` válido en `cmd.direct/email.send`. RabbitMQ mantuvo el mensaje en `q.cmd.email` con `messages_ready=1` y cero consumidores.
+- Al levantar `notify`, el mensaje fue consumido, la cola volvió a cero y Mailpit registró el correo. Esto valida la persistencia de mensajes durante la indisponibilidad del consumidor y la recuperación posterior.
+- Se publicó un envelope inválido. Notify registró el error, ejecutó NACK sin reencolado, RabbitMQ lo dirigió a `q.cmd.email.dlq` y el consumidor DLQ lo archivó como `dlq-*.json` en el volumen persistente.
+- El estado final de las colas fue cero mensajes pendientes y un consumidor activo por cada cola. AWS no se utilizó en este ensayo.
