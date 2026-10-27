@@ -20,7 +20,6 @@ public class BffController {
     @GetMapping("/api/me") public Map<String,Object> me(@AuthenticationPrincipal Jwt jwt) {
         var result=new LinkedHashMap<String,Object>();result.put("nombre",jwt.getClaimAsString("name"));result.put("usuario",jwt.getClaimAsString("preferred_username"));result.put("roles",Optional.ofNullable(jwt.getClaimAsStringList("roles")).orElse(List.of()));return result;
     }
-    @GetMapping("/api/data") public Map<String,Object> data(@AuthenticationPrincipal Jwt jwt) { return Map.of("message","Pedidos360: sesión válida","subject",jwt.getSubject()); }
     @RequestMapping(value={"/api/catalog/**","/api/orders/**","/api/audit/**","/api/report/**","/api/admin/rabbit/**","/api/admin/kafka/**"},method={RequestMethod.GET,RequestMethod.POST,RequestMethod.PUT,RequestMethod.DELETE})
     public ResponseEntity<byte[]> proxy(HttpServletRequest request,@RequestBody(required=false) byte[] body) {
         String path=request.getRequestURI();if(path.startsWith("/api/catalog/reservations")) throw new ResponseStatusException(HttpStatus.NOT_FOUND);var base=urls.entrySet().stream().filter(e -> path.equals(e.getKey())||path.startsWith(e.getKey()+"/")).map(Map.Entry::getValue).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));

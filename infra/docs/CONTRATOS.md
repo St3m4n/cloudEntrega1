@@ -32,7 +32,6 @@ Respuesta: `id`, `cliente`, `email`, `estado`, `creadoEn`, `version`, `total`, `
 ## Lecturas y perfil
 
 - `GET /api/me`: nombre/usuario/roles, usado por el frontend.
-- `GET /api/data`: diagnóstico de sesión del frontend original.
 - `GET /api/report/kpis?range=last24h|last7d`: ventas entregadas en el rango, lead time promedio en minutos, pedidos activos actuales, entregados, creados, ventas por hora UTC, estados actuales y lead times individuales.
 - `GET /api/report/top-products?range=last24h|last7d`: diez productos más vendidos por unidades, sobre pedidos entregados.
 - `GET /api/audit/events?user=OID_O_EMAIL&type=OrderCreated&orderId=ID&from=ISO_INSTANT&to=ISO_INSTANT`: timeline filtrable.

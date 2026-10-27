@@ -1,8 +1,8 @@
 # Pedidos360
 
-Backend preparado para EC2 con un microservicio por instancia, RDS Oracle, API Gateway HTTP API y JWT de Microsoft Entra ID. El frontend existente se conserva en React por decisión del usuario.
+Backend de entrega 2 preparado para tres EC2: aplicaciones, RabbitMQ y Kafka/Zookeeper. Usa RDS Oracle, API Gateway HTTP API y JWT de Microsoft Entra ID. El frontend se conserva en React por decisión del usuario.
 
-La implementación activa está en `backend/`. `demo/api`, `demo/ms-clientes` y `demo/ms-pedidos360-catalogo` son el prototipo anterior y **no deben ejecutarse junto al backend nuevo**: comparten puertos y no forman parte de la arquitectura final. Se conservaron para no perder trabajo ni datos previos. No hay migración automática de la base H2 anterior.
+La implementación activa está en `backend/` y el frontend React en `frontend-pedidos360/`. Los servicios reemplazados y la pantalla de laboratorio del prototipo se eliminaron; su versión anterior permanece en el historial Git. No hay migración automática de la base H2 anterior.
 
 | Servicio | Puerto | Responsabilidad |
 |---|---:|---|
@@ -28,7 +28,7 @@ $env:JAVA_HOME='C:\Program Files\Java\jdk-21'
 
 En Linux: `cd backend && ./mvnw -B -ntp verify` (si el archivo no tiene permiso ejecutable, `chmod +x mvnw`). Los JAR quedan en `backend/ms-pedidos360-*/target/`. Las pruebas usan H2 en modo Oracle, un servidor HTTP de prueba para catálogo/JWKS y mocks para SMTP/ACK. No sustituyen una prueba con RDS ni con los brokers reales.
 
-Frontend: `cd demo/entra-demo`, `npm ci`, `npm run build`. Copiar `.env.example` a `.env.local` y completar los IDs del tenant existente. Se mantiene el callback `/redirect.html`; no se cambió el registro de aplicaciones de Entra.
+Frontend: `cd frontend-pedidos360`, `npm ci`, `npm run build`. Copiar `.env.example` a `.env.local` y completar los IDs del tenant existente. Se mantiene el callback `/redirect.html`; no se cambió el registro de aplicaciones de Entra.
 
 ## Ejecutar localmente
 
@@ -40,7 +40,7 @@ Copy-Item infra/local/.env.example infra/local/.env
 docker compose --env-file infra/local/.env -f infra/local/compose.yml up -d --build
 ```
 
-Este Compose reúne los ocho servicios, dos RabbitMQ, tres Zookeeper, tres brokers Kafka, Kafka UI y Mailpit. Las bases locales usan archivos H2 en volúmenes independientes. El frontend corre con `npm run dev`; `VITE_BFF_BASE_URL=http://localhost:8080`. Los eventos producen datos reales; no se cargan pedidos ni productos de ejemplo automáticamente.
+Este Compose reúne los ocho servicios, un RabbitMQ, un Zookeeper, un broker Kafka, Kafka UI y Mailpit. Kafka tiene tres particiones por tópico y una réplica para este MVP. Las bases locales usan archivos H2 en volúmenes independientes. El frontend corre con `npm run dev`; `VITE_BFF_BASE_URL=http://localhost:8080`. No se cargan pedidos ni productos de ejemplo automáticamente.
 
 - RabbitMQ management: `http://localhost:15672` (usuario/clave de `.env`).
 - Kafka UI: `http://localhost:8090`.
@@ -65,11 +65,13 @@ Los endpoints OpenAPI `/v3/api-docs` y Swagger `/swagger-ui/index.html` requiere
 
 Ver [guía de despliegue](infra/docs/AWS.md), [contratos HTTP y eventos](infra/docs/CONTRATOS.md) y [matriz del caso](infra/docs/CUMPLIMIENTO.md).
 
+Para preparar el acceso temporal y los datos de la cuenta, ver [requisitos AWS](infra/docs/REQUISITOS_AWS.md). `infra/aws/deployment-inputs.example.json` resume los parámetros no secretos; es una ficha de preparación, no un archivo de parámetros CloudFormation.
+
 Los resultados locales y lo que falta probar en cloud están en [registro de validación](infra/docs/VALIDACION.md).
 
-`infra/aws/cloudformation.json` define diez EC2 (ocho aplicaciones y dos hosts de mensajería), RDS Oracle, grupos de seguridad, roles de EC2, ALB privado, VPC Link y API Gateway con authorizer JWT. Usa una VPC existente con dos subredes privadas en diferentes zonas. La plantilla **no instala las aplicaciones automáticamente**: prepara las máquinas y la red; las imágenes y Compose se despliegan siguiendo la guía. Crear el stack genera costos; no se ha ejecutado contra una cuenta AWS.
+`infra/aws/cloudformation.json` define tres EC2, RDS Oracle, grupos de seguridad, roles de EC2, ALB privado, VPC Link y API Gateway con authorizer JWT. Requiere una VPC y dos subredes privadas con acceso saliente. La variante `cloudformation-lab.json` reutiliza `LabInstanceProfile` y agrega dos subredes privadas y un NAT dentro de la VPC existente. Las plantillas instalan Docker/Compose; `scripts/deploy_lab.py` despliega las aplicaciones por SSM. Crear el stack genera costos.
 
-Por servicio hay un Compose en `infra/apps/<servicio>/compose.yml`; los archivos `infra/mq/compose.yml` e `infra/kafka/compose.yml` se ejecutan en sus EC2 correspondientes. Los esquemas Oracle se inicializan explícitamente mediante `infra/db/schema-oracle.sql`; el perfil `aws` valida el esquema y no lo crea al iniciar.
+`infra/apps/compose.yml` agrupa los ocho microservicios y Mailpit en `ec2-apps`; solo publica el puerto del BFF. `infra/mq/compose.yml` y `infra/kafka/compose.yml` se ejecutan en sus EC2 correspondientes. Los esquemas Oracle se inicializan explícitamente; el perfil `aws` valida el esquema y no lo crea al iniciar. Cada servicio sigue siendo un proceso y una imagen independientes.
 
 ## Límites del MVP
 
@@ -77,6 +79,6 @@ RDS aloja cuatro usuarios/esquemas separados; cada servicio accede solo a su esq
 
 Las entregas de mensajería son al menos una vez. La deduplicación de notify se guarda en un volumen persistente por comando. SMTP no ofrece una operación atómica con ese recibo: si el proceso cae después de enviar email y antes de escribir el recibo, el reintento puede duplicar el correo. Los tickets son archivos para cocina; no hay integración con una impresora física. Los PDF son comprobantes internos, sin integración tributaria. Se implementa email, no webpush (el caso permite email/push).
 
-Los dos nodos RabbitMQ usan quorum queues: necesitan ambos para mantener mayoría. Los tres brokers y Zookeeper están en un solo host para la entrega; no hay tolerancia a caída de esa EC2. Para producción se requieren al menos tres nodos RabbitMQ y brokers distribuidos, TLS/SASL, monitoreo y gestión de secretos. En este MVP AMQP, Kafka y HTTP interno operan en red privada restringida por Security Groups.
+RabbitMQ y Kafka tienen una sola instancia de broker para el MVP; los volúmenes conservan datos al reiniciar contenedores, pero no hay alta disponibilidad ante pérdida del host. AMQP, Kafka y HTTP interno operan en red privada restringida por Security Groups. Los clústeres de la pauta final se dejan para entrega 3; Kubernetes no forma parte de esta entrega.
 
-Pruebas pendientes de infraestructura: arranque real de los Compose, selección regional de clases RDS/EC2, JWT del tenant real, conexión RDS, SMTP de producción y flujo completo a través de API Gateway. React sigue siendo una diferencia explícita respecto del requisito Angular del documento.
+El estado de las pruebas AWS se registra en `infra/docs/VALIDACION.md`. Mailpit recibe los correos de demostración dentro de `ec2-apps`, sin contratar un proveedor SMTP. React sigue siendo una diferencia explícita respecto del requisito Angular del documento.

@@ -1,38 +1,27 @@
-# Comparación con el caso y pauta del profesor
+# Caso y alcance acordado
 
-Fuente: `EFT Caso - Instrucciones (1).pdf`, entregado por el usuario. Se aplican los requisitos del caso como criterios del proyecto; no como instrucciones externas al asistente. La pauta agrega requisitos que no aparecen en el diagrama resumido.
+Fuente: `EFT Caso - Instrucciones (1).pdf`. Se utiliza como criterio del proyecto, no como instrucciones externas al asistente. El usuario acordó el MVP de tres EC2 para entrega 2 y deja los clústeres para entrega 3.
 
-| Criterio | Estado del código/configuración | Evidencia pendiente |
+| Criterio | Entrega 2 | Pendiente |
 |---|---|---|
-| Backend Spring Boot 3+ / Java 21 / OpenAPI | Ocho servicios independientes en backend, common reutilizable | Arranque y consultas en EC2 |
-| Pedidos CRUD / estados / stock | Implementado; cancelación y borrado lógico, transacciones y reservas idempotentes | Smoke integrado RDS |
-| Catálogo productos/stock/precio | Implementado y conectado a React | Cargar productos reales en RDS |
-| Notify sin DB | Consumer RabbitMQ, SMTP, tickets JSON, comprobantes PDF; recibos en volumen | Configurar SMTP y revisar archivos generados |
-| Report / audit separados | Consumers Kafka y esquemas propios; endpoints de lectura | Consumo real en AWS |
-| BFF separado | JWT y proxy, conserva rutas del frontend | Validar con tenant real |
-| IDaaS Azure / JWT / roles | Validación en todos los servicios; forwarding JWT; pruebas de firma/issuer/audience/expiración | Configurar variables con tenant existente |
-| API Gateway HTTP API + JWT | CloudFormation con authorizer/scopes, VPC Link y ALB interno | Crear stack y ejecutar smoke |
-| EC2 / Docker Compose | Una EC2 y Compose por servicio, hosts separados para MQ/Kafka | Desplegar imágenes y completar `.env` |
-| Oracle cloud | Driver Oracle y SQL de cuatro esquemas; RDS Oracle | Provisionar RDS y aplicar esquema |
-| Dos nodos RabbitMQ en clúster | Compose, cookie compartida, descubrimiento estático y quorum queues | Verificar cluster_status en ejecución |
-| Tres colas / cada DLQ | email/kitchen/invoice con sus tres DLQ | Demostrar ACK, NACK y archivo DLQ |
-| Direct y topic | cmd.direct, cmd.topic y bindings de cada flujo | Demostrar routing en panel/administrador |
-| Servicio administrador RabbitMQ | Crear/listar/borrar colas y exchanges; crear/listar/borrar bindings | Probar con broker real y JWT Admin |
-| Tres Zookeeper y tres brokers | Compose completo con volúmenes | Verificar salud/ISR reales |
-| Dos tópicos, 3 particiones / 3 réplicas | orders.events, audit.timeline; también dos DLT | Describe de tópicos reales |
-| Consumers / producers Kafka | Orders outbox produce; audit/report consumen; reintentos y DLT | Demostrar entrega y fallos |
-| Servicio administrador Kafka | Tópicos, particiones, configs y consulta de clúster | Probar con Kafka real y JWT Admin |
-| Kafka UI | Servicio Compose con acceso local/SSM | Evidencia de administración en defensa |
-| Front Angular 18+ | **Diferencia acordada:** se mantiene React/MSAL por solicitud explícita | El profesor puede evaluar esta diferencia |
-| BD Oracle en OCI del diagrama | **Diferencia solicitada:** RDS Oracle en AWS conserva el motor | Confirmar aceptación académica del proveedor |
-| Front desplegado cloud (pauta) | React sigue local; código compila y llama a Gateway | Hosting frontend si se exige en esta entrega |
+| Java 21 / Spring Boot / OpenAPI | Ocho servicios independientes y biblioteca common | Arranque integrado AWS |
+| Orders / catalog | Estados, stock, reservas idempotentes, coordinación y outbox | Flujo con RDS y JWT real |
+| Audit / report | Consumers Kafka, deduplicación, proyecciones y lectura | Consumo real y evidencias |
+| Notify | RabbitMQ, tickets, PDF y Mailpit en apps | ACK/NACK, DLQ y archivos reales |
+| BFF / Entra / API Gateway | Validación JWT, forwarding, roles y authorizer | Claims reales del tenant y smoke completo |
+| Tres EC2 y Compose por VM (p. 6) | Apps agrupadas, MQ y Kafka separados | Verificar despliegue completo |
+| Oracle cloud | RDS Oracle y cuatro esquemas | Inicialización y validación de persistencia |
+| RabbitMQ | Un broker MVP; tres colas/tres DLQ; direct/topic | Clúster de dos nodos para pauta final |
+| Kafka / Zookeeper | Un Zookeeper/un broker; dos tópicos y DLT, tres particiones/una réplica | Tres Zookeeper/tres brokers y RF=3 para pauta final |
+| Administradores Rabbit/Kafka y Kafka UI | Código y contenedores incluidos | Probar con JWT Admin y brokers reales |
+| Frontend | React local, MSAL y Gateway | Diferencia acordada respecto de Angular y hosting final |
 
-## Por qué no se reemplazó por SQS
+## Diferencias del documento que conviene aclarar
 
-El usuario propuso SQS como posibilidad. El documento exige RabbitMQ para colas y Kafka/Zookeeper para streaming; la pauta evalúa dos nodos RabbitMQ, direct/topic, tres colas/DLQ, administradores y Kafka UI. SQS no implementa esos componentes. Se preparó la opción que conserva los criterios explícitos. No hay adaptador SQS ni se afirma que esté implementado.
+La página 6 especifica tres EC2 y permite un broker Kafka para MVP. La pauta de las páginas 12–13 exige tres brokers y tres Zookeeper; RabbitMQ aparece con tres nodos opcionales en página 6 y dos nodos en la pauta final. Son alcances diferentes de MVP y evaluación final, pero el documento no asigna todos esos criterios inequívocamente a una entrega. Confirmar esa división con el profesor.
 
-El caso menciona un broker para MVP, pero la pauta exige tres brokers y tres Zookeeper: los Compose siguen el criterio más específico de evaluación. La figura omite los administradores; fueron incluidos porque aparecen en la pauta.
+El diagrama muestra frontend local y Oracle en OCI; la pauta final pide frontend y backend cloud. El usuario conserva React y usa RDS Oracle. Audit menciona Auditor en el caso y Admin en la sección de servicios; el código permite ambos para lectura. No hay una exigencia explícita de Kubernetes en el documento.
 
-## Validación y alcance
+SQS no reemplaza Kafka/RabbitMQ en esta entrega porque cambiaría los componentes y criterios evaluados. Los microservicios siguen separados aunque compartan `ec2-apps`; una instancia EC2 por microservicio no es necesaria para cumplir la agrupación de página 6.
 
-La compilación y las pruebas locales no demuestran una infraestructura desplegada. Se deben registrar por separado resultados de Maven, build React, validación Compose/CloudFormation y evidencias cloud (EC2 activas, RDS conectado, JWT real, RabbitMQ, ISR Kafka, Gateway y SMTP). Las limitaciones de consistencia eventual, almacenamiento en CLOB, SMTP y disponibilidad están en el README.
+La compilación local no prueba integración AWS. Consultar `VALIDACION.md` para resultados reales y pendientes.

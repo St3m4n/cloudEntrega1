@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Pedidos360: eight EC2 services, RabbitMQ/Kafka hosts, RDS Oracle, private ALB and JWT HTTP API. Creates billable resources.",
+  "Description": "Pedidos360: three EC2 (apps, RabbitMQ, Kafka), RDS Oracle, private ALB and JWT HTTP API. Creates billable resources.",
   "Parameters": {
     "VpcId": {
       "Type": "AWS::EC2::VPC::Id"
@@ -15,11 +15,15 @@
     },
     "AppInstanceType": {
       "Type": "String",
+      "Default": "t3.large"
+    },
+    "MqInstanceType": {
+      "Type": "String",
       "Default": "t3.small"
     },
-    "BrokerInstanceType": {
+    "KafkaInstanceType": {
       "Type": "String",
-      "Default": "t3.large"
+      "Default": "t3.medium"
     },
     "DbInstanceClass": {
       "Type": "String",
@@ -84,20 +88,6 @@
         }
       }
     },
-    "AppInternal": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupId": {
-          "Ref": "AppSG"
-        },
-        "SourceSecurityGroupId": {
-          "Ref": "AppSG"
-        },
-        "IpProtocol": "tcp",
-        "FromPort": 8080,
-        "ToPort": 8088
-      }
-    },
     "AlbToBff": {
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
@@ -151,7 +141,7 @@
         },
         "IpProtocol": "tcp",
         "FromPort": 5672,
-        "ToPort": 5673
+        "ToPort": 5672
       }
     },
     "RabbitManagementFromApps": {
@@ -165,7 +155,7 @@
         },
         "IpProtocol": "tcp",
         "FromPort": 15672,
-        "ToPort": 15673
+        "ToPort": 15672
       }
     },
     "KafkaFromApps": {
@@ -179,7 +169,7 @@
         },
         "IpProtocol": "tcp",
         "FromPort": 9092,
-        "ToPort": 9094
+        "ToPort": 9092
       }
     },
     "Ec2Role": {
@@ -217,7 +207,7 @@
         ]
       }
     },
-    "Ec2Bff": {
+    "Ec2Apps": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "ImageId": {
@@ -261,350 +251,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "pedidos360-bff"
-          }
-        ]
-      }
-    },
-    "Ec2Catalog": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-catalog"
-          }
-        ]
-      }
-    },
-    "Ec2Orders": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-orders"
-          }
-        ]
-      }
-    },
-    "Ec2Audit": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-audit"
-          }
-        ]
-      }
-    },
-    "Ec2Report": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-report"
-          }
-        ]
-      }
-    },
-    "Ec2Notify": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-notify"
-          }
-        ]
-      }
-    },
-    "Ec2RabbitAdmin": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-rabbit-admin"
-          }
-        ]
-      }
-    },
-    "Ec2KafkaAdmin": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "ImageId": {
-          "Ref": "AmiId"
-        },
-        "InstanceType": {
-          "Ref": "AppInstanceType"
-        },
-        "SubnetId": {
-          "Fn::Select": [
-            0,
-            {
-              "Ref": "PrivateSubnets"
-            }
-          ]
-        },
-        "SecurityGroupIds": [
-          {
-            "Ref": "AppSG"
-          }
-        ],
-        "IamInstanceProfile": {
-          "Ref": "Ec2Profile"
-        },
-        "MetadataOptions": {
-          "HttpTokens": "required"
-        },
-        "BlockDeviceMappings": [
-          {
-            "DeviceName": "/dev/xvda",
-            "Ebs": {
-              "VolumeSize": 40,
-              "VolumeType": "gp3",
-              "Encrypted": true
-            }
-          }
-        ],
-        "UserData": {
-          "Fn::Base64": "#!/bin/bash\nset -eu\ndnf install -y docker\nsystemctl enable --now docker\nmkdir -p /usr/local/lib/docker/cli-plugins /opt/pedidos360\ncurl -fsSL https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose\nchmod +x /usr/local/lib/docker/cli-plugins/docker-compose\n"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "pedidos360-kafka-admin"
+            "Value": "pedidos360-apps"
           }
         ]
       }
@@ -616,7 +263,7 @@
           "Ref": "AmiId"
         },
         "InstanceType": {
-          "Ref": "BrokerInstanceType"
+          "Ref": "MqInstanceType"
         },
         "SubnetId": {
           "Fn::Select": [
@@ -665,7 +312,7 @@
           "Ref": "AmiId"
         },
         "InstanceType": {
-          "Ref": "BrokerInstanceType"
+          "Ref": "KafkaInstanceType"
         },
         "SubnetId": {
           "Fn::Select": [
@@ -775,7 +422,7 @@
         "Targets": [
           {
             "Id": {
-              "Ref": "Ec2Bff"
+              "Ref": "Ec2Apps"
             },
             "Port": 8080
           }
@@ -938,66 +585,10 @@
     }
   },
   "Outputs": {
-    "Ec2BffPrivateIp": {
+    "Ec2AppsPrivateIp": {
       "Value": {
         "Fn::GetAtt": [
-          "Ec2Bff",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2CatalogPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2Catalog",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2OrdersPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2Orders",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2AuditPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2Audit",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2ReportPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2Report",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2NotifyPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2Notify",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2RabbitAdminPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2RabbitAdmin",
-          "PrivateIp"
-        ]
-      }
-    },
-    "Ec2KafkaAdminPrivateIp": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Ec2KafkaAdmin",
+          "Ec2Apps",
           "PrivateIp"
         ]
       }

@@ -6,6 +6,7 @@ info/tenant.txt
 **/dist/
 **/.env
 **/.env.local
+**/common.env
 **/data/
 **/*.log
 **/terraform.tfstate*

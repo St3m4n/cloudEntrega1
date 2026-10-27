@@ -1,8 +1,8 @@
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 COPY backend/ ./backend/
+RUN mvn -B -ntp -f backend/pom.xml package -DskipTests
 ARG SERVICE
-RUN mvn -B -ntp -f backend/pom.xml -pl ${SERVICE} -am package -DskipTests
 RUN cp backend/${SERVICE}/target/${SERVICE}-1.0.0.jar /app.jar
 FROM eclipse-temurin:21-jre
 WORKDIR /app

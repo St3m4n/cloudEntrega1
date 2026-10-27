@@ -1,0 +1,201 @@
+{
+  "services": {
+    "bff": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/bff:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "bff-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "ports": [
+        "8080:8080"
+      ]
+    },
+    "catalog": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/catalog:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError",
+        "DB_USER": "P360_CATALOG",
+        "DB_PASSWORD": "${CATALOG_DB_PASSWORD:?set schema password}"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "catalog-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "orders": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/orders:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError",
+        "DB_USER": "P360_ORDERS",
+        "DB_PASSWORD": "${ORDERS_DB_PASSWORD:?set schema password}"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "orders-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "audit": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/audit:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError",
+        "DB_USER": "P360_AUDIT",
+        "DB_PASSWORD": "${AUDIT_DB_PASSWORD:?set schema password}"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "audit-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "report": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/report:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError",
+        "DB_USER": "P360_REPORT",
+        "DB_PASSWORD": "${REPORT_DB_PASSWORD:?set schema password}"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "report-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "notify": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/notify:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "notify-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "rabbit-admin": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/rabbit-admin:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "rabbit-admin-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "kafka-admin": {
+      "image": "${IMAGE_REPOSITORY:?set repository}/kafka-admin:${IMAGE_TAG:-1.0.0}",
+      "restart": "unless-stopped",
+      "env_file": [
+        "common.env"
+      ],
+      "environment": {
+        "JAVA_TOOL_OPTIONS": "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError"
+      },
+      "mem_limit": "768m",
+      "volumes": [
+        "kafka-admin-data:/app/data"
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      }
+    },
+    "mailpit": {
+      "image": "axllent/mailpit:v1.24",
+      "restart": "unless-stopped",
+      "ports": [
+        "127.0.0.1:8025:8025"
+      ],
+      "mem_limit": "128m"
+    }
+  },
+  "volumes": {
+    "bff-data": {},
+    "catalog-data": {},
+    "orders-data": {},
+    "audit-data": {},
+    "report-data": {},
+    "notify-data": {},
+    "rabbit-admin-data": {},
+    "kafka-admin-data": {}
+  }
+}

@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/orders/**").hasAnyRole("Admin", "Operator", "Customer")
                 .requestMatchers(HttpMethod.POST, "/api/orders").hasAnyRole("Operator", "Customer")
                 .requestMatchers("/api/orders/**").hasAnyRole("Admin", "Operator")
-                .requestMatchers("/api/me", "/api/data").hasAuthority("SCOPE_access_as_user")
+                .requestMatchers("/api/me").hasAuthority("SCOPE_access_as_user")
                 .anyRequest().denyAll())
             .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(converter))).build();
     }

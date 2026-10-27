@@ -1,0 +1,40 @@
+{
+  "aws": {
+    "profile": "pedidos360",
+    "region": "us-east-1",
+    "accountType": "learner-lab",
+    "credentialsExpireAt": "REPLACE_EXPIRATION_WITH_TIMEZONE",
+    "budgetLimitUsd": 50,
+    "existingInstanceProfile": "LabInstanceProfile"
+  },
+  "network": {
+    "vpcId": "REPLACE_VPC_ID",
+    "publicSubnetId": "REPLACE_PUBLIC_SUBNET_WITH_IGW_ROUTE",
+    "privateAzA": "us-east-1a",
+    "privateAzB": "us-east-1b",
+    "privateCidrA": "REPLACE_UNUSED_VPC_CIDR_A",
+    "privateCidrB": "REPLACE_UNUSED_VPC_CIDR_B"
+  },
+  "entra": {
+    "tenantId": "REPLACE_EXISTING_TENANT_ID",
+    "spaClientId": "REPLACE_EXISTING_SPA_CLIENT_ID",
+    "apiClientId": "REPLACE_EXISTING_API_CLIENT_ID",
+    "issuer": "https://login.microsoftonline.com/REPLACE_TENANT_ID/v2.0",
+    "audience": "REPLACE_EXACT_API_ACCESS_TOKEN_AUD"
+  },
+  "frontend": {
+    "origin": "http://localhost:5173",
+    "redirectUri": "http://localhost:5173/redirect.html",
+    "deployToAws": false
+  },
+  "notifications": {
+    "mode": "mailpit",
+    "smtpHost": null,
+    "smtpPort": null,
+    "mailFrom": null
+  },
+  "lab": {
+    "stackName": "pedidos360-lab",
+    "imageTag": "mvp-20261008"
+  }
+}

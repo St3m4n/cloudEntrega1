@@ -1,4 +1,4 @@
-param([string]$BaseUrl='http://localhost:8080')
+param([string]$BaseUrl='http://localhost:8080',[int]$ExpectedKafkaBrokers=1)
 $ErrorActionPreference='Stop'
 foreach($key in @('P360_ADMIN_TOKEN','P360_OPERATOR_TOKEN','P360_CUSTOMER_TOKEN')) {
     if(-not [Environment]::GetEnvironmentVariable($key)) { throw "Configura $key con un access token de prueba." }
@@ -25,6 +25,6 @@ for($attempt=0;$attempt -lt 30;$attempt++) {
 }
 if(-not $found) { throw 'Audit/report no reflejaron Kafka en 30 segundos. Revisa outbox, brokers y DLT.' }
 $cluster=Invoke-P360 GET /api/admin/kafka/cluster $env:P360_ADMIN_TOKEN
-if($cluster.brokers.Count -ne 3) { throw 'No están activos los tres brokers Kafka.' }
+if($cluster.brokers.Count -ne $ExpectedKafkaBrokers) { throw "Se esperaban $ExpectedKafkaBrokers brokers Kafka activos." }
 Write-Output "Flujo OK. Pedido $($order.id), producto $($product.id), stock 3; eventos y ventas recibidos."
 # Intentionally keeps delivered order/audit evidence for the defense. Delete only the test product if desired.
