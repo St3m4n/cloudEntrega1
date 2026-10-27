@@ -18,7 +18,8 @@ public class Notifications {
     private static final Logger log=LoggerFactory.getLogger(Notifications.class);
     private final ObjectMapper mapper;private final JavaMailSender mail;private final Path directory;private final String sender;
     public Notifications(ObjectMapper mapper,JavaMailSender mail,@Value("${app.notify-dir}") String directory,@Value("${app.mail-from}") String sender) throws IOException { this.mapper=mapper;this.mail=mail;this.directory=Path.of(directory);this.sender=sender;Files.createDirectories(this.directory); }
-    @RabbitListener(queues={"q.cmd.email","q.cmd.kitchen","q.cmd.invoice"})
+    /** Notification domain consumer: email, kitchen ticket and invoice commands. */
+    @RabbitListener(queues={RabbitTopology.EMAIL_QUEUE,RabbitTopology.KITCHEN_QUEUE,RabbitTopology.INVOICE_QUEUE})
     public synchronized void consume(Message message,Channel channel) throws IOException {
         long tag=message.getMessageProperties().getDeliveryTag();
         try {
@@ -28,9 +29,9 @@ public class Notifications {
             if(!Files.exists(receipt)) {
                 var order=event.path("order");String queue=message.getMessageProperties().getConsumerQueue();
                 switch(queue) {
-                    case "q.cmd.email" -> { var email=new SimpleMailMessage();email.setFrom(sender);email.setTo(order.path("email").asText());email.setSubject("Pedido "+order.path("id").asText()+": "+order.path("estado").asText());email.setText("El estado de su pedido es "+order.path("estado").asText()+". Total: "+order.path("total").asText());mail.send(email); }
-                    case "q.cmd.kitchen" -> atomic(directory.resolve("ticket-"+id+".json"),event.toPrettyString().getBytes(StandardCharsets.UTF_8));
-                    case "q.cmd.invoice" -> invoice(directory.resolve("invoice-"+id+".pdf"),order);
+                    case RabbitTopology.EMAIL_QUEUE -> { var email=new SimpleMailMessage();email.setFrom(sender);email.setTo(order.path("email").asText());email.setSubject("Pedido "+order.path("id").asText()+": "+order.path("estado").asText());email.setText("El estado de su pedido es "+order.path("estado").asText()+". Total: "+order.path("total").asText());mail.send(email); }
+                    case RabbitTopology.KITCHEN_QUEUE -> atomic(directory.resolve("ticket-"+id+".json"),event.toPrettyString().getBytes(StandardCharsets.UTF_8));
+                    case RabbitTopology.INVOICE_QUEUE -> invoice(directory.resolve("invoice-"+id+".pdf"),order);
                     default -> throw new IllegalArgumentException("Cola desconocida");
                 }
                 atomic(receipt,"processed".getBytes(StandardCharsets.UTF_8));log.info("Comando completado eventId={} queue={}",id,queue);
@@ -38,7 +39,8 @@ public class Notifications {
             channel.basicAck(tag,false);
         }catch(Exception e) { log.error("Comando fallido messageId={} cola={} error={}",message.getMessageProperties().getMessageId(),message.getMessageProperties().getConsumerQueue(),e.toString());channel.basicNack(tag,false,false); }
     }
-    @RabbitListener(queues={"q.cmd.email.dlq","q.cmd.kitchen.dlq","q.cmd.invoice.dlq"},autoStartup="${DLQ_LOGGER_ENABLED:true}")
+    /** DLQ consumer archives poison messages and ACKs only after persistence. */
+    @RabbitListener(queues={RabbitTopology.EMAIL_DLQ,RabbitTopology.KITCHEN_DLQ,RabbitTopology.INVOICE_DLQ},autoStartup="${DLQ_LOGGER_ENABLED:true}")
     public synchronized void deadLetter(Message message,Channel channel) throws IOException {
         try { String id=java.util.UUID.randomUUID().toString();atomic(directory.resolve("dlq-"+id+".json"),mapper.writeValueAsBytes(java.util.Map.of("queue",message.getMessageProperties().getConsumerQueue(),"headers",message.getMessageProperties().getHeaders(),"body",new String(message.getBody(),StandardCharsets.UTF_8))));log.error("RabbitMQ DLQ archivada id={} queue={}",id,message.getMessageProperties().getConsumerQueue());channel.basicAck(message.getMessageProperties().getDeliveryTag(),false); }
         catch(Exception e) { channel.basicNack(message.getMessageProperties().getDeliveryTag(),false,true); }

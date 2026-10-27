@@ -24,7 +24,7 @@ public class Outbox {
                 if(destination.equals("orders.events")||destination.equals("audit.timeline")) kafka.send(destination,event.path("correlationId").asText(),event.toString()).get(20,TimeUnit.SECONDS);
                 else {
                     var properties=new MessageProperties();properties.setContentType("application/json");properties.setDeliveryMode(MessageDeliveryMode.PERSISTENT);properties.setMessageId(event.path("eventId").asText());
-                    var correlation=new CorrelationData(event.path("eventId").asText());rabbit.send("cmd.direct",destination,new Message(event.toString().getBytes(StandardCharsets.UTF_8),properties),correlation);
+                    var correlation=new CorrelationData(event.path("eventId").asText());rabbit.send(RabbitTopology.DIRECT_EXCHANGE,destination,new Message(event.toString().getBytes(StandardCharsets.UTF_8),properties),correlation);
                     if(!correlation.getFuture().get(10,TimeUnit.SECONDS).isAck()||correlation.getReturned()!=null) throw new IllegalStateException("RabbitMQ no confirmó el enrutamiento");
                 }
                 store.remove(key);

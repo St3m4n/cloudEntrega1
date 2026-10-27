@@ -44,8 +44,8 @@ class OrdersTests {
         new Outbox(store,kafka,rabbit,transactionManager).publish();org.mockito.Mockito.verify(kafka,org.mockito.Mockito.times(1)).send(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString());
     }
     @Test void rabbitOutboxIsRemovedOnlyAfterPublisherConfirmation() {
-        store.insert("outbox:test","outbox",store.parse("{\"id\":\"test\",\"destination\":\"email.send\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"eventId\":\"event-1\",\"correlationId\":\"1\"}}"));
-        org.mockito.Mockito.doAnswer(call->{var correlation=(org.springframework.amqp.rabbit.connection.CorrelationData)call.getArgument(3);correlation.getFuture().complete(new org.springframework.amqp.rabbit.connection.CorrelationData.Confirm(true,null));return null;}).when(rabbit).send(org.mockito.ArgumentMatchers.eq("cmd.direct"),org.mockito.ArgumentMatchers.eq("email.send"),org.mockito.ArgumentMatchers.any(org.springframework.amqp.core.Message.class),org.mockito.ArgumentMatchers.any(org.springframework.amqp.rabbit.connection.CorrelationData.class));
+        store.insert("outbox:test","outbox",store.parse("{\"id\":\"test\",\"destination\":\""+RabbitTopology.EMAIL_ROUTING_KEY+"\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"eventId\":\"event-1\",\"correlationId\":\"1\"}}"));
+        org.mockito.Mockito.doAnswer(call->{var correlation=(org.springframework.amqp.rabbit.connection.CorrelationData)call.getArgument(3);correlation.getFuture().complete(new org.springframework.amqp.rabbit.connection.CorrelationData.Confirm(true,null));return null;}).when(rabbit).send(org.mockito.ArgumentMatchers.eq(RabbitTopology.DIRECT_EXCHANGE),org.mockito.ArgumentMatchers.eq(RabbitTopology.EMAIL_ROUTING_KEY),org.mockito.ArgumentMatchers.any(org.springframework.amqp.core.Message.class),org.mockito.ArgumentMatchers.any(org.springframework.amqp.rabbit.connection.CorrelationData.class));
         new Outbox(store,kafka,rabbit,transactionManager).publish();assertThat(store.exists("outbox:test")).isFalse();
     }
 }

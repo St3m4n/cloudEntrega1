@@ -75,9 +75,9 @@ public class OrdersController {
         String trace=Optional.ofNullable(request.getHeader("X-Correlation-Id")).filter(s -> s.length()<100).orElseGet(()->UUID.randomUUID().toString());
         var event=Events.envelope(type,jwt.getSubject(),request.getRemoteAddr(),trace,order);
         task("orders.events",event);task("audit.timeline",event);
-        task("email.send",Events.envelope("EmailRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
-        if(type.equals("OrderAccepted")) task("kitchen.ticket",Events.envelope("KitchenTicketRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
-        if(type.equals("OrderDelivered")) task("invoice.gen",Events.envelope("InvoiceRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
+        task(RabbitTopology.EMAIL_ROUTING_KEY,Events.envelope("EmailRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
+        if(type.equals("OrderAccepted")) task(RabbitTopology.KITCHEN_ROUTING_KEY,Events.envelope("KitchenTicketRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
+        if(type.equals("OrderDelivered")) task(RabbitTopology.INVOICE_ROUTING_KEY,Events.envelope("InvoiceRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
     }
     private void task(String destination,ObjectNode event) { var entry=JsonNodeFactory.instance.objectNode().put("destination",destination).put("id",UUID.randomUUID().toString()).put("attempts",0).put("createdAt",Instant.now().toString());entry.set("message",event);store.insert("outbox:"+entry.path("id").asText(),"outbox",entry); }
 }
