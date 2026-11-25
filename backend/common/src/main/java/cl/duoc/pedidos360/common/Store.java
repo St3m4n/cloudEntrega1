@@ -10,6 +10,8 @@ public class Store {
     public final Documents documents; private final ObjectMapper mapper;
     public Store(Documents documents,ObjectMapper mapper) { this.documents=documents;this.mapper=mapper; }
     public ObjectNode parse(String value) { try { return (ObjectNode)mapper.readTree(value); } catch(Exception e) { throw new IllegalArgumentException("JSON inválido",e); } }
+    /** Convierte un DTO a JSON pasando por texto, para conservar números exactos (BigDecimal) igual que al leer un mensaje. */
+    public ObjectNode toTree(Object value) { try { return parse(mapper.writeValueAsString(value)); } catch(com.fasterxml.jackson.core.JsonProcessingException e) { throw new IllegalArgumentException("No se pudo convertir a JSON",e); } }
     public ObjectNode get(String id) { return parse(documents.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Recurso no encontrado")).payload); }
     public ObjectNode lock(String id) { return parse(documents.lock(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Recurso no encontrado")).payload); }
     public List<ObjectNode> all(String kind) { return documents.findByKindOrderByIdAsc(kind).stream().map(d -> parse(d.payload)).toList(); }

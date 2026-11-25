@@ -1,4 +1,4 @@
-param([string]$BaseUrl='http://localhost:8080',[int]$ExpectedKafkaBrokers=1)
+param([string]$BaseUrl='http://localhost:8080',[int]$ExpectedKafkaBrokers=3)
 $ErrorActionPreference='Stop'
 foreach($key in @('P360_ADMIN_TOKEN','P360_OPERATOR_TOKEN','P360_CUSTOMER_TOKEN')) {
     if(-not [Environment]::GetEnvironmentVariable($key)) { throw "Configura $key con un access token de prueba." }

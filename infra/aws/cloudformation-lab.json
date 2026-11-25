@@ -193,7 +193,7 @@
         },
         "IpProtocol": "tcp",
         "FromPort": 9092,
-        "ToPort": 9092
+        "ToPort": 9094
       }
     },
     "Ec2Apps": {

@@ -4,7 +4,7 @@ Este procedimiento corresponde a la rama entrega2 y a una cuenta AWS Learner Lab
 
 - ec2-apps: los ocho microservicios y Mailpit.
 - ec2-mq: un RabbitMQ con Management UI.
-- ec2-kafka: un Zookeeper, un broker Kafka y Kafka UI.
+- ec2-kafka: tres ZooKeeper, tres brokers Kafka (9092-9094) y Kafka UI.
 
 La configuración permite probar la entrega 2. La pauta semestral final exige dos nodos RabbitMQ y tres brokers Kafka con tres réplicas; esos componentes no están en esta rama MVP. No presentes este entorno como el clúster final sin completar esa ampliación.
 
@@ -210,10 +210,10 @@ Para el smoke automatizado se necesitan tres access tokens reales del tenant, co
 $env:P360_ADMIN_TOKEN = 'TOKEN_ADMIN_LOCAL'
 $env:P360_OPERATOR_TOKEN = 'TOKEN_OPERATOR_LOCAL'
 $env:P360_CUSTOMER_TOKEN = 'TOKEN_CUSTOMER_LOCAL'
-.\scripts\smoke.ps1 -BaseUrl $apiUrl -ExpectedKafkaBrokers 1
+.\scripts\smoke.ps1 -BaseUrl $apiUrl -ExpectedKafkaBrokers 3
 ~~~
 
-No guardes esos tokens en archivos ni los compartas por chat. El smoke de esta rama espera un broker Kafka; no demuestra la pauta final de tres brokers.
+No guardes esos tokens en archivos ni los compartas por chat. El smoke de esta rama espera tres brokers Kafka.
 
 ## 7. Abrir paneles privados por SSM
 

@@ -40,7 +40,7 @@ Copy-Item infra/local/.env.example infra/local/.env
 docker compose --env-file infra/local/.env -f infra/local/compose.yml up -d --build
 ```
 
-Este Compose reúne los ocho servicios, un RabbitMQ, un Zookeeper, un broker Kafka, Kafka UI y Mailpit. Kafka tiene tres particiones por tópico y una réplica para este MVP. Las bases locales usan archivos H2 en volúmenes independientes. El frontend corre con `npm run dev`; `VITE_BFF_BASE_URL=http://localhost:8080`. No se cargan pedidos ni productos de ejemplo automáticamente.
+Este Compose reúne los ocho servicios, un RabbitMQ, tres ZooKeeper, tres brokers Kafka, Kafka UI y Mailpit. Kafka tiene tres particiones por tópico, factor de replicación 3 y `min.insync.replicas=2`. Las bases locales usan archivos H2 en volúmenes independientes. El frontend corre con `npm run dev`; `VITE_BFF_BASE_URL=http://localhost:8080`. No se cargan pedidos ni productos de ejemplo automáticamente.
 
 - RabbitMQ management: `http://localhost:15672` (usuario/clave de `.env`).
 - Kafka UI: `http://localhost:8090`.
@@ -79,6 +79,6 @@ RDS aloja cuatro usuarios/esquemas separados; cada servicio accede solo a su esq
 
 Las entregas de mensajería son al menos una vez. La deduplicación de notify se guarda en un volumen persistente por comando. SMTP no ofrece una operación atómica con ese recibo: si el proceso cae después de enviar email y antes de escribir el recibo, el reintento puede duplicar el correo. Los tickets son archivos para cocina; no hay integración con una impresora física. Los PDF son comprobantes internos, sin integración tributaria. Se implementa email, no webpush (el caso permite email/push).
 
-RabbitMQ y Kafka tienen una sola instancia de broker para el MVP; los volúmenes conservan datos al reiniciar contenedores, pero no hay alta disponibilidad ante pérdida del host. AMQP, Kafka y HTTP interno operan en red privada restringida por Security Groups. Los clústeres de la pauta final se dejan para entrega 3; Kubernetes no forma parte de esta entrega.
+Kafka corre como clúster de tres brokers con un ensemble de tres ZooKeeper en `ec2-kafka` (todos en la misma VM, por lo que no protege ante la pérdida del host). RabbitMQ sigue con una sola instancia; los volúmenes conservan datos al reiniciar contenedores, pero no hay alta disponibilidad ante pérdida del host. AMQP, Kafka y HTTP interno operan en red privada restringida por Security Groups. Los clústeres de la pauta final se dejan para entrega 3; Kubernetes no forma parte de esta entrega.
 
 El estado de las pruebas AWS se registra en `infra/docs/VALIDACION.md`. Mailpit recibe los correos de demostración dentro de `ec2-apps`, sin contratar un proveedor SMTP. React sigue siendo una diferencia explícita respecto del requisito Angular del documento.

@@ -62,7 +62,7 @@ else:
         'RABBIT_ADDRESSES': outputs['Ec2MqPrivateIp'] + ':5672',
         'RABBIT_USER': 'pedidos360', 'RABBIT_PASSWORD': state['rabbitPassword'],
         'RABBIT_MANAGEMENT_URL': 'http://' + outputs['Ec2MqPrivateIp'] + ':15672',
-        'KAFKA_BOOTSTRAP_SERVERS': outputs['Ec2KafkaPrivateIp'] + ':9092',
+        'KAFKA_BOOTSTRAP_SERVERS': ','.join(outputs['Ec2KafkaPrivateIp'] + ':' + str(port) for port in (9092, 9093, 9094)),
         'SMTP_HOST': 'mailpit', 'SMTP_PORT': 1025, 'SMTP_AUTH': 'false', 'SMTP_TLS': 'false',
         'NOTIFY_DIR': '/app/data/notify',
     }

@@ -18,7 +18,7 @@ public class ApiErrors {
     ResponseEntity<ProblemDetail> unavailable(Exception e) { return ResponseEntity.status(503).body(ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,"Servicio externo no disponible")); }
     @ExceptionHandler(java.util.concurrent.ExecutionException.class)
     ResponseEntity<ProblemDetail> kafka(java.util.concurrent.ExecutionException e) {
-        var cause=e.getCause();HttpStatus status=cause instanceof org.apache.kafka.common.errors.TopicExistsException ? HttpStatus.CONFLICT : cause instanceof org.apache.kafka.common.errors.UnknownTopicOrPartitionException ? HttpStatus.NOT_FOUND : cause instanceof org.apache.kafka.common.errors.InvalidPartitionsException || cause instanceof org.apache.kafka.common.errors.InvalidConfigurationException ? HttpStatus.BAD_REQUEST : HttpStatus.SERVICE_UNAVAILABLE;
+        var cause=e.getCause();HttpStatus status=cause instanceof org.apache.kafka.common.errors.TopicExistsException || cause instanceof org.apache.kafka.common.errors.GroupNotEmptyException ? HttpStatus.CONFLICT : cause instanceof org.apache.kafka.common.errors.GroupIdNotFoundException ? HttpStatus.NOT_FOUND : cause instanceof org.apache.kafka.common.errors.UnknownTopicOrPartitionException ? HttpStatus.NOT_FOUND : cause instanceof org.apache.kafka.common.errors.InvalidPartitionsException || cause instanceof org.apache.kafka.common.errors.InvalidConfigurationException ? HttpStatus.BAD_REQUEST : HttpStatus.SERVICE_UNAVAILABLE;
         return ResponseEntity.status(status).body(ProblemDetail.forStatusAndDetail(status,"Operación Kafka rechazada: "+cause.getClass().getSimpleName()));
     }
 }

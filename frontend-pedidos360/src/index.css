@@ -504,3 +504,137 @@ a {
 .estado-despachado { background: #ece8fb; color: #4b3a99; }
 .estado-entregado { background: #e1f4e6; color: #1e6b34; }
 .estado-cancelado { background: #fdecea; color: #b42318; }
+
+/* Página Kafka */
+.kafka-seccion {
+  margin-top: 16px;
+}
+
+.kafka-seccion .subtitulo {
+  margin: 0 0 12px;
+}
+
+.kafka-pruebas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kafka-nota {
+  margin: 12px 0 0;
+  color: var(--texto-suave);
+}
+
+.kafka-pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.kafka-pestana {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.kafka-pestana.activa {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: #fff;
+}
+
+.kafka-pestana.dlt:not(.activa) {
+  border-color: var(--peligro);
+  color: var(--peligro);
+}
+
+.kafka-pestana.dlt.activa {
+  background: var(--peligro);
+  border-color: var(--peligro);
+}
+
+.kafka-contador {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+.kafka-tabla-contenedor {
+  overflow-x: auto;
+}
+
+.kafka-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.kafka-tabla th,
+.kafka-tabla td {
+  text-align: left;
+  vertical-align: top;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.kafka-tabla th {
+  color: var(--texto-suave);
+  font-weight: 600;
+}
+
+.kafka-tabla td:nth-child(1),
+.kafka-tabla td:nth-child(2) {
+  font-variant-numeric: tabular-nums;
+}
+
+.kafka-tabla.compacta {
+  font-size: 0.85rem;
+}
+
+.kafka-payload {
+  max-width: 420px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.8rem;
+  background: var(--fondo);
+  padding: 8px;
+  border-radius: var(--radio);
+}
+
+.kafka-grupos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 12px;
+}
+
+.kafka-grupo {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 12px;
+}
+
+.kafka-grupo h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.kafka-grupo p {
+  margin: 0 0 8px;
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+.kafka-estado {
+  font-weight: 600;
+  color: var(--peligro);
+}
+
+.kafka-estado.ok {
+  color: #1a7f37;
+}

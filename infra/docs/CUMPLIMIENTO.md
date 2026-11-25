@@ -12,7 +12,7 @@ Fuente: `EFT Caso - Instrucciones (1).pdf`. Se utiliza como criterio del proyect
 | Tres EC2 y Compose por VM (p. 6) | Apps agrupadas, MQ y Kafka separados | Verificar despliegue completo |
 | Oracle cloud | RDS Oracle y cuatro esquemas | Inicialización y validación de persistencia |
 | RabbitMQ | Un broker MVP; tres colas/tres DLQ; direct/topic | Clúster de dos nodos para pauta final |
-| Kafka / Zookeeper | Un Zookeeper/un broker; dos tópicos y DLT, tres particiones/una réplica | Tres Zookeeper/tres brokers y RF=3 para pauta final |
+| Kafka / Zookeeper | Entrega 3: tres ZooKeeper y tres brokers; dos tópicos y DLT, tres particiones, RF=3, min.insync.replicas=2 | Validar caída de un broker en la presentación |
 | Administradores Rabbit/Kafka y Kafka UI | Código y contenedores incluidos | Probar con JWT Admin y brokers reales |
 | Frontend | React local, MSAL y Gateway | Diferencia acordada respecto de Angular y hosting final |
 

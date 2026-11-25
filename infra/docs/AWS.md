@@ -1,6 +1,6 @@
 # AWS: entrega 2 con tres EC2
 
-Topología acordada: `ec2-apps` ejecuta los ocho microservicios y Mailpit; `ec2-mq` ejecuta RabbitMQ; `ec2-kafka` ejecuta Zookeeper, un broker Kafka y Kafka UI. Cada VM tiene su propio Docker Compose. Kafka utiliza tres particiones y una réplica para el MVP. Los clústeres se reservan para entrega 3; no se usa Kubernetes.
+Topología acordada: `ec2-apps` ejecuta los ocho microservicios y Mailpit; `ec2-mq` ejecuta RabbitMQ; `ec2-kafka` ejecuta tres ZooKeeper, tres brokers Kafka (puertos 9092-9094) y Kafka UI. Cada VM tiene su propio Docker Compose. Kafka utiliza tres particiones y una réplica para el MVP. Los clústeres se reservan para entrega 3; no se usa Kubernetes.
 
 Entrada pública: React local -> API Gateway HTTP API con JWT -> VPC Link -> ALB interno -> BFF:8080. Los demás puertos de aplicaciones quedan dentro de la red Docker. RDS Oracle tiene cuatro esquemas y solo acepta tráfico de aplicaciones. Security Groups permiten AMQP:5672, Rabbit management:15672 y Kafka:9092 desde aplicaciones. No hay SSH ni paneles públicos.
 
@@ -60,7 +60,7 @@ Comprobar: tres EC2/SSM disponibles; RDS disponible; ocho aplicaciones sanas; AL
 Con tres access tokens reales en variables de entorno `P360_ADMIN_TOKEN`, `P360_OPERATOR_TOKEN`, `P360_CUSTOMER_TOKEN`:
 
 ```powershell
-.\scripts\smoke.ps1 -BaseUrl https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com -ExpectedKafkaBrokers 1
+.\scripts\smoke.ps1 -BaseUrl https://YOUR_API_ID.execute-api.us-east-1.amazonaws.com -ExpectedKafkaBrokers 3
 ```
 
 Mailpit corre en la EC2 de aplicaciones y no requiere un proveedor de correo. Su panel en 8025 y Kafka UI en 8090 solo se consultan por SSM port forwarding. Rabbit management está ligado a la IP privada y también requiere acceso privado/SSM. No contratar SMTP real para esta entrega.

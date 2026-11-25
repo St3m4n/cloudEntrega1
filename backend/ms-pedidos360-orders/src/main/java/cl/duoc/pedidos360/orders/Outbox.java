@@ -2,7 +2,6 @@ package cl.duoc.pedidos360.orders;
 import cl.duoc.pedidos360.common.*;
 import org.springframework.stereotype.Component;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.core.*;
@@ -14,14 +13,14 @@ import org.slf4j.*;
 @Component
 public class Outbox {
     private static final Logger log=LoggerFactory.getLogger(Outbox.class);
-    private final Store store;private final KafkaTemplate<String,String> kafka;private final RabbitTemplate rabbit;private final TransactionTemplate tx;
-    public Outbox(Store s,KafkaTemplate<String,String> k,RabbitTemplate r,PlatformTransactionManager manager) { store=s;kafka=k;rabbit=r;tx=new TransactionTemplate(manager); }
+    private final Store store;private final OrderEventPublisher kafka;private final RabbitTemplate rabbit;private final TransactionTemplate tx;
+    public Outbox(Store s,OrderEventPublisher k,RabbitTemplate r,PlatformTransactionManager manager) { store=s;kafka=k;rabbit=r;tx=new TransactionTemplate(manager); }
     @Scheduled(fixedDelayString="${OUTBOX_DELAY_MS:2000}") public void publish() {
         for(var candidate:store.all("outbox").stream().filter(e->!e.has("nextAttemptAt")||java.time.Instant.parse(e.path("nextAttemptAt").asText()).isBefore(java.time.Instant.now())).sorted(java.util.Comparator.comparing(e->e.path("createdAt").asText())).limit(50).toList()) tx.executeWithoutResult(status -> {
             String key="outbox:"+candidate.path("id").asText();if(!store.exists(key)) return;var entry=store.lock(key);
             try {
                 var event=entry.path("message");String destination=entry.path("destination").asText();
-                if(destination.equals("orders.events")||destination.equals("audit.timeline")) kafka.send(destination,event.path("correlationId").asText(),event.toString()).get(20,TimeUnit.SECONDS);
+                if(OrderEventPublisher.handles(destination)) kafka.publish(destination,event);
                 else {
                     var properties=new MessageProperties();properties.setContentType("application/json");properties.setDeliveryMode(MessageDeliveryMode.PERSISTENT);properties.setMessageId(event.path("eventId").asText());
                     var correlation=new CorrelationData(event.path("eventId").asText());rabbit.send(RabbitTopology.DIRECT_EXCHANGE,destination,new Message(event.toString().getBytes(StandardCharsets.UTF_8),properties),correlation);

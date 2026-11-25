@@ -1,4 +1,4 @@
-"""Generate the entrega 2 MVP: three EC2, grouped apps and single brokers."""
+"""Generate the deployment: three EC2, grouped apps, one RabbitMQ and a three-broker Kafka cluster with a three-node ZooKeeper ensemble."""
 from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[1]
@@ -13,17 +13,26 @@ for i in (1,):
 write('infra/mq/compose.yml',mq)
 
 kafka={'services':{},'volumes':{}}
-for i in (1,):
-    kafka['volumes'][f'zk{i}-data']={};kafka['volumes'][f'zk{i}-log']={};kafka['volumes'][f'kafka{i}']={}
-    kafka['services'][f'zk{i}']={'image':'confluentinc/cp-zookeeper:7.7.1','hostname':f'zk{i}','restart':'unless-stopped','environment':{'ZOOKEEPER_SERVER_ID':str(i),'ZOOKEEPER_CLIENT_PORT':'2181','ZOOKEEPER_TICK_TIME':'2000','ZOOKEEPER_INIT_LIMIT':'10','ZOOKEEPER_SYNC_LIMIT':'5','KAFKA_HEAP_OPTS':'-Xms128m -Xmx256m'},'volumes':[f'zk{i}-data:/var/lib/zookeeper/data',f'zk{i}-log:/var/lib/zookeeper/log']}
+BROKERS=(1,2,3)
+ZOOKEEPERS=(1,2,3)
+bootstrap=','.join(f'kafka{i}:29092' for i in BROKERS)
+zk_connect=','.join(f'zk{i}:2181' for i in ZOOKEEPERS)
+# Ensemble de 3 ZooKeeper: mantiene quorum (2 de 3) si cae un nodo.
+for i in ZOOKEEPERS:
+    kafka['volumes'][f'zk{i}-data']={};kafka['volumes'][f'zk{i}-log']={}
+    kafka['services'][f'zk{i}']={'image':'confluentinc/cp-zookeeper:7.7.1','hostname':f'zk{i}','restart':'unless-stopped','environment':{'ZOOKEEPER_SERVER_ID':str(i),'ZOOKEEPER_CLIENT_PORT':'2181','ZOOKEEPER_TICK_TIME':'2000','ZOOKEEPER_INIT_LIMIT':'10','ZOOKEEPER_SYNC_LIMIT':'5','ZOOKEEPER_SERVERS':';'.join(f'zk{j}:2888:3888' for j in ZOOKEEPERS),'KAFKA_HEAP_OPTS':'-Xms96m -Xmx192m'},'volumes':[f'zk{i}-data:/var/lib/zookeeper/data',f'zk{i}-log:/var/lib/zookeeper/log']}
+# Tres brokers: replicación 3 y min.insync.replicas 2; con acks=all el clúster tolera la caída de un broker.
+for i in BROKERS:
+    kafka['volumes'][f'kafka{i}']={}
     port=9091+i
-    kafka['services'][f'kafka{i}']={'image':'confluentinc/cp-kafka:7.7.1','hostname':f'kafka{i}','restart':'unless-stopped','depends_on':['zk1'],'ports':[f'{port}:{port}'],'environment':{'KAFKA_BROKER_ID':str(i),'KAFKA_ZOOKEEPER_CONNECT':'zk1:2181','KAFKA_LISTENERS':f'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:{port}','KAFKA_ADVERTISED_LISTENERS':f'INTERNAL://kafka{i}:29092,EXTERNAL://${{KAFKA_HOST:-localhost}}:{port}','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP':'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT','KAFKA_INTER_BROKER_LISTENER_NAME':'INTERNAL','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR':'1','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR':'1','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR':'1','KAFKA_DEFAULT_REPLICATION_FACTOR':'1','KAFKA_MIN_INSYNC_REPLICAS':'1','KAFKA_AUTO_CREATE_TOPICS_ENABLE':'false','KAFKA_HEAP_OPTS':'-Xms256m -Xmx512m'},'volumes':[f'kafka{i}:/var/lib/kafka/data'],'healthcheck':{'test':['CMD','kafka-topics','--bootstrap-server','localhost:29092','--list'],'interval':'15s','timeout':'10s','retries':20}}
+    kafka['services'][f'kafka{i}']={'image':'confluentinc/cp-kafka:7.7.1','hostname':f'kafka{i}','restart':'unless-stopped','depends_on':[f'zk{j}' for j in ZOOKEEPERS],'ports':[f'{port}:{port}'],'environment':{'KAFKA_BROKER_ID':str(i),'KAFKA_ZOOKEEPER_CONNECT':zk_connect,'KAFKA_LISTENERS':f'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:{port}','KAFKA_ADVERTISED_LISTENERS':f'INTERNAL://kafka{i}:29092,EXTERNAL://${{KAFKA_HOST:-localhost}}:{port}','KAFKA_LISTENER_SECURITY_PROTOCOL_MAP':'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT','KAFKA_INTER_BROKER_LISTENER_NAME':'INTERNAL','KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR':'3','KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR':'3','KAFKA_TRANSACTION_STATE_LOG_MIN_ISR':'2','KAFKA_DEFAULT_REPLICATION_FACTOR':'3','KAFKA_MIN_INSYNC_REPLICAS':'2','KAFKA_AUTO_CREATE_TOPICS_ENABLE':'false','KAFKA_HEAP_OPTS':'-Xms256m -Xmx512m'},'volumes':[f'kafka{i}:/var/lib/kafka/data'],'healthcheck':{'test':['CMD','kafka-topics','--bootstrap-server','localhost:29092','--list'],'interval':'15s','timeout':'10s','retries':20}}
 topics=[('orders.events','delete',604800000),('audit.timeline','compact,delete',2592000000),('orders.events.ms-pedidos360-report.DLT','delete',1209600000),('audit.timeline.ms-pedidos360-audit.DLT','delete',1209600000)]
 commands=['set -e']
 for topic,policy,retention in topics:
-    commands.append(f'kafka-topics --bootstrap-server kafka1:29092 --create --if-not-exists --topic {topic} --partitions 3 --replication-factor 1 --config cleanup.policy={policy} --config retention.ms={retention} --config min.insync.replicas=1')
-kafka['services']['init-topics']={'image':'confluentinc/cp-kafka:7.7.1','depends_on':{f'kafka{i}':{'condition':'service_healthy'} for i in (1,)},'entrypoint':['/bin/bash','-c'],'command':['\n'.join(commands)],'restart':'no'}
-kafka['services']['kafka-ui']={'image':'provectuslabs/kafka-ui:v0.7.2','restart':'unless-stopped','ports':['127.0.0.1:8090:8080'],'environment':{'KAFKA_CLUSTERS_0_NAME':'pedidos360','KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS':'kafka1:29092','KAFKA_CLUSTERS_0_ZOOKEEPER':'zk1:2181'},'depends_on':['kafka1']}
+    commands.append(f'kafka-topics --bootstrap-server {bootstrap} --create --if-not-exists --topic {topic} --partitions 3 --replication-factor 3 --config cleanup.policy={policy} --config retention.ms={retention} --config min.insync.replicas=2')
+commands.append(f'kafka-topics --bootstrap-server {bootstrap} --describe')
+kafka['services']['init-topics']={'image':'confluentinc/cp-kafka:7.7.1','depends_on':{f'kafka{i}':{'condition':'service_healthy'} for i in BROKERS},'entrypoint':['/bin/bash','-c'],'command':[chr(10).join(commands)],'restart':'no'}
+kafka['services']['kafka-ui']={'image':'provectuslabs/kafka-ui:v0.7.2','restart':'unless-stopped','ports':['127.0.0.1:8090:8080'],'environment':{'KAFKA_CLUSTERS_0_NAME':'pedidos360','KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS':bootstrap,'KAFKA_CLUSTERS_0_ZOOKEEPER':zk_connect},'depends_on':[f'kafka{i}' for i in BROKERS]}
 write('infra/kafka/compose.yml',kafka)
 
 services=[('bff',8080),('catalog',8082),('orders',8083),('audit',8084),('report',8085),('notify',8086),('rabbit-admin',8087),('kafka-admin',8088)]
@@ -53,8 +62,9 @@ for name,service in mq['services'].items():
 local['services'].update(copy.deepcopy(kafka['services']))
 local['volumes'].update(mq['volumes']);local['volumes'].update(kafka['volumes'])
 for name,_ in services:
-    env=local['services'][name]['environment'];env['RABBIT_ADDRESSES']='rabbit1:5672';env['RABBIT_MANAGEMENT_URL']='http://rabbit1:15672';env['KAFKA_BOOTSTRAP_SERVERS']='kafka1:29092'
+    env=local['services'][name]['environment'];env['RABBIT_ADDRESSES']='rabbit1:5672';env['RABBIT_MANAGEMENT_URL']='http://rabbit1:15672';env['KAFKA_BOOTSTRAP_SERVERS']=bootstrap
     local['services'][name]['depends_on']={'rabbit1':{'condition':'service_healthy'},'init-topics':{'condition':'service_completed_successfully'}}
+local['services']['bff']['ports']=['127.0.0.1:${BFF_HOST_PORT:-8080}:8080']
 write('infra/local/compose.yml',local)
 
 # Existing VPC/subnets are supplied by the operator. No AWS operation is performed.
@@ -65,7 +75,7 @@ t={'AWSTemplateFormatVersion':'2010-09-09','Description':'Pedidos360: three EC2 
 r=t['Resources']
 for name in ('AppSG','BrokerSG','DatabaseSG','AlbSG','LinkSG'):
     r[name]={'Type':'AWS::EC2::SecurityGroup','Properties':{'GroupDescription':'Pedidos360 '+name,'VpcId':ref('VpcId')}}
-for name,target,source,port,end in [('AlbToBff','AppSG','AlbSG',8080,8080),('LinkToAlb','AlbSG','LinkSG',80,80),('OracleFromApps','DatabaseSG','AppSG',1521,1521),('AmqpFromApps','BrokerSG','AppSG',5672,5672),('RabbitManagementFromApps','BrokerSG','AppSG',15672,15672),('KafkaFromApps','BrokerSG','AppSG',9092,9092)]:
+for name,target,source,port,end in [('AlbToBff','AppSG','AlbSG',8080,8080),('LinkToAlb','AlbSG','LinkSG',80,80),('OracleFromApps','DatabaseSG','AppSG',1521,1521),('AmqpFromApps','BrokerSG','AppSG',5672,5672),('RabbitManagementFromApps','BrokerSG','AppSG',15672,15672),('KafkaFromApps','BrokerSG','AppSG',9092,9094)]:
     r[name]={'Type':'AWS::EC2::SecurityGroupIngress','Properties':{'GroupId':ref(target),'SourceSecurityGroupId':ref(source),'IpProtocol':'tcp','FromPort':port,'ToPort':end}}
 r['Ec2Role']={'Type':'AWS::IAM::Role','Properties':{'AssumeRolePolicyDocument':{'Version':'2012-10-17','Statement':[{'Effect':'Allow','Principal':{'Service':'ec2.amazonaws.com'},'Action':'sts:AssumeRole'}]},'ManagedPolicyArns':[sub('arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore'),sub('arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly')]}}
 r['Ec2Profile']={'Type':'AWS::IAM::InstanceProfile','Properties':{'Roles':[ref('Ec2Role')]}}

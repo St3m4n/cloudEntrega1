@@ -4,6 +4,7 @@ import type { Rol } from './auth/roles';
 import { AuditPage } from './pages/AuditPage';
 import { CatalogPage } from './pages/CatalogPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { KafkaPage } from './pages/KafkaPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ReportsPage } from './pages/ReportsPage';
 
@@ -31,4 +32,5 @@ export const SECCIONES: Seccion[] = [
   },
   { ruta: '/reports', titulo: 'Reportes', roles: [ROLES.admin], Pagina: ReportsPage },
   { ruta: '/audit', titulo: 'Auditoría', roles: [ROLES.admin], Pagina: AuditPage },
+  { ruta: '/kafka', titulo: 'Kafka', roles: [ROLES.admin], Pagina: KafkaPage },
 ];

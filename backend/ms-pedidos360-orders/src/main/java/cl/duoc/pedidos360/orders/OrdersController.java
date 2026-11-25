@@ -74,7 +74,7 @@ public class OrdersController {
     private void enqueue(ObjectNode order,Jwt jwt,HttpServletRequest request,String type) {
         String trace=Optional.ofNullable(request.getHeader("X-Correlation-Id")).filter(s -> s.length()<100).orElseGet(()->UUID.randomUUID().toString());
         var event=Events.envelope(type,jwt.getSubject(),request.getRemoteAddr(),trace,order);
-        task("orders.events",event);task("audit.timeline",event);
+        task(cl.duoc.pedidos360.common.kafka.KafkaTopics.ORDER_EVENTS,event);task(cl.duoc.pedidos360.common.kafka.KafkaTopics.AUDIT_TIMELINE,event);
         task(RabbitTopology.EMAIL_ROUTING_KEY,Events.envelope("EmailRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
         if(type.equals("OrderAccepted")) task(RabbitTopology.KITCHEN_ROUTING_KEY,Events.envelope("KitchenTicketRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));
         if(type.equals("OrderDelivered")) task(RabbitTopology.INVOICE_ROUTING_KEY,Events.envelope("InvoiceRequested",jwt.getSubject(),request.getRemoteAddr(),trace,order));

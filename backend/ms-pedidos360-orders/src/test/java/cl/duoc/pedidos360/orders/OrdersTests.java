@@ -26,7 +26,7 @@ class OrdersTests {
     @DynamicPropertySource static void props(DynamicPropertyRegistry registry) { registry.add("app.catalog-url",()->"http://127.0.0.1:"+server.getAddress().getPort()); }
     @Autowired MockMvc mvc;@Autowired ObjectMapper mapper;@Autowired Documents documents;@Autowired Store store;
     @MockitoBean JwtDecoder decoder;@MockitoBean Outbox outbox;
-    @MockitoBean org.springframework.kafka.core.KafkaTemplate<String,String> kafka;
+    @MockitoBean org.springframework.kafka.core.KafkaTemplate<String,cl.duoc.pedidos360.common.kafka.OrderEvent> kafka;@Autowired OrderEventPublisher publisher;
     @MockitoBean org.springframework.amqp.rabbit.core.RabbitTemplate rabbit;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
     @BeforeEach void clean() { documents.deleteAll();reserveCalls.set(0);reply.set(200); }
@@ -38,14 +38,27 @@ class OrdersTests {
     @Test void failedStockDoesNotAdvanceStateOrPublishEvents() throws Exception { long id=create();reply.set(409);change(id,"ACEPTADO",409);assertThat(store.get("order:"+id).path("estado").asText()).isEqualTo("CREADO");assertThat(store.all("outbox")).hasSize(3);assertThat(store.exists("stock-intent:"+id)).isFalse(); }
     @Test void ambiguousStockFailureRequiresSameOperationRetry() throws Exception { long id=create();reply.set(503);change(id,"ACEPTADO",503);change(id,"CANCELADO",409);assertThat(store.exists("stock-intent:"+id)).isTrue();reply.set(200);change(id,"ACEPTADO",200);assertThat(store.exists("stock-intent:"+id)).isFalse(); }
     @Test void failedBrokerKeepsOutboxForLaterRetry() {
-        store.insert("outbox:test","outbox",store.parse("{\"id\":\"test\",\"destination\":\"orders.events\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"correlationId\":\"1\"}}"));
-        org.mockito.Mockito.when(kafka.send(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString())).thenReturn(java.util.concurrent.CompletableFuture.failedFuture(new RuntimeException("broker offline")));
-        new Outbox(store,kafka,rabbit,transactionManager).publish();var entry=store.get("outbox:test");assertThat(entry.path("attempts").asInt()).isEqualTo(1);assertThat(entry.has("nextAttemptAt")).isTrue();
-        new Outbox(store,kafka,rabbit,transactionManager).publish();org.mockito.Mockito.verify(kafka,org.mockito.Mockito.times(1)).send(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString());
+        store.insert("outbox:test","outbox",store.parse("{\"id\":\"test\",\"destination\":\"orders.events\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"type\":\"OrderCreated\",\"eventId\":\"e1\",\"timestamp\":\"2026-10-07T00:00:00Z\",\"correlationId\":\"1\",\"order\":{\"id\":1,\"estado\":\"CREADO\",\"version\":1}}}"));
+        org.mockito.Mockito.when(kafka.send(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(cl.duoc.pedidos360.common.kafka.OrderEvent.class))).thenReturn(java.util.concurrent.CompletableFuture.failedFuture(new RuntimeException("broker offline")));
+        new Outbox(store,publisher,rabbit,transactionManager).publish();var entry=store.get("outbox:test");assertThat(entry.path("attempts").asInt()).isEqualTo(1);assertThat(entry.has("nextAttemptAt")).isTrue();
+        new Outbox(store,publisher,rabbit,transactionManager).publish();org.mockito.Mockito.verify(kafka,org.mockito.Mockito.times(1)).send(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(cl.duoc.pedidos360.common.kafka.OrderEvent.class));
+    }
+    @Test void kafkaOutboxPublishesTypedEventKeyedByOrderAndThenRemovesIt() {
+        store.insert("outbox:typed","outbox",store.parse("{\"id\":\"typed\",\"destination\":\"orders.events\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"type\":\"OrderCreated\",\"eventId\":\"e1\",\"timestamp\":\"2026-10-07T00:00:00Z\",\"correlationId\":\"1\",\"order\":{\"id\":1,\"estado\":\"CREADO\",\"version\":1}}}"));
+        var metadata=new org.apache.kafka.clients.producer.RecordMetadata(new org.apache.kafka.common.TopicPartition("orders.events",1),5,0,0,0,0);
+        org.mockito.Mockito.when(kafka.send(org.mockito.ArgumentMatchers.eq("orders.events"),org.mockito.ArgumentMatchers.eq("1"),org.mockito.ArgumentMatchers.any(cl.duoc.pedidos360.common.kafka.OrderEvent.class))).thenAnswer(call->java.util.concurrent.CompletableFuture.completedFuture(new org.springframework.kafka.support.SendResult<>(new org.apache.kafka.clients.producer.ProducerRecord<>("orders.events","1",call.getArgument(2)),metadata)));
+        new Outbox(store,publisher,rabbit,transactionManager).publish();
+        org.mockito.Mockito.verify(kafka).send(org.mockito.ArgumentMatchers.eq("orders.events"),org.mockito.ArgumentMatchers.eq("1"),org.mockito.ArgumentMatchers.<cl.duoc.pedidos360.common.kafka.OrderEvent>argThat(e->e.order().id()==1L&&e.order().version()==1L&&e.type().equals("OrderCreated")&&e.timestamp().toString().equals("2026-10-07T00:00:00Z")));
+        assertThat(store.exists("outbox:typed")).isFalse();
+    }
+    @Test void invalidEventIsNotPublishedAndStaysInOutbox() {
+        store.insert("outbox:bad","outbox",store.parse("{\"id\":\"bad\",\"destination\":\"audit.timeline\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"correlationId\":\"1\"}}"));
+        new Outbox(store,publisher,rabbit,transactionManager).publish();
+        org.mockito.Mockito.verifyNoInteractions(kafka);assertThat(store.get("outbox:bad").path("attempts").asInt()).isEqualTo(1);
     }
     @Test void rabbitOutboxIsRemovedOnlyAfterPublisherConfirmation() {
         store.insert("outbox:test","outbox",store.parse("{\"id\":\"test\",\"destination\":\""+RabbitTopology.EMAIL_ROUTING_KEY+"\",\"createdAt\":\"2026-10-07T00:00:00Z\",\"message\":{\"eventId\":\"event-1\",\"correlationId\":\"1\"}}"));
         org.mockito.Mockito.doAnswer(call->{var correlation=(org.springframework.amqp.rabbit.connection.CorrelationData)call.getArgument(3);correlation.getFuture().complete(new org.springframework.amqp.rabbit.connection.CorrelationData.Confirm(true,null));return null;}).when(rabbit).send(org.mockito.ArgumentMatchers.eq(RabbitTopology.DIRECT_EXCHANGE),org.mockito.ArgumentMatchers.eq(RabbitTopology.EMAIL_ROUTING_KEY),org.mockito.ArgumentMatchers.any(org.springframework.amqp.core.Message.class),org.mockito.ArgumentMatchers.any(org.springframework.amqp.rabbit.connection.CorrelationData.class));
-        new Outbox(store,kafka,rabbit,transactionManager).publish();assertThat(store.exists("outbox:test")).isFalse();
+        new Outbox(store,publisher,rabbit,transactionManager).publish();assertThat(store.exists("outbox:test")).isFalse();
     }
 }
