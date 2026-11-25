@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { mensajeDe, useBff } from '../bff';
-import { EncabezadoPagina, Kpi } from '../components/ui';
+import { Icono } from '../components/Icono';
+import { Cargando, EncabezadoPagina, EstadoVacio, Kpi, Panel } from '../components/ui';
 
 interface DltInfo {
   originalTopic?: string;
@@ -126,72 +127,70 @@ export function KafkaPage() {
 
   return <>
     <EncabezadoPagina titulo="Kafka" descripcion="Mensajes reales de los tópicos y sus DLT leídos con @KafkaListener, consumer groups y configuración. Se actualiza cada 5 segundos."
-      acciones={<button className="boton secundario" onClick={() => { void cargarMensajes(); void cargarGrupos(); void cargarTopologia(); }}>Actualizar</button>} />
+      acciones={<button className="boton secundario" onClick={() => { void cargarMensajes(); void cargarGrupos(); void cargarTopologia(); }}><Icono nombre="actualizar" />Actualizar</button>} />
     {error && <p role="alert" className="texto-error">{error}</p>}
 
     <div className="kpis">
-      <Kpi titulo="Brokers" valor={cluster ? cluster.brokers.length : '…'} nota={cluster?.brokers.map(b => `#${b.id} ${b.host}:${b.port}`).join(' · ')} />
-      <Kpi titulo="orders.events" valor={vistas['orders.events']?.messages.length ?? '…'} nota="últimos mensajes" />
-      <Kpi titulo="audit.timeline" valor={vistas['audit.timeline']?.messages.length ?? '…'} nota="últimos mensajes" />
-      <Kpi titulo="En DLT" valor={mensajes ? totalDlt : '…'} nota="mensajes rechazados" />
+      <Kpi icono="servidor" titulo="Brokers" valor={cluster ? cluster.brokers.length : '…'} nota={cluster?.brokers.map(b => `#${b.id} ${b.host}:${b.port}`).join(' · ')} />
+      <Kpi icono="pedidos" titulo="orders.events" valor={vistas['orders.events']?.messages.length ?? '…'} nota="Últimos mensajes (máx. 50)" />
+      <Kpi icono="auditoria" titulo="audit.timeline" valor={vistas['audit.timeline']?.messages.length ?? '…'} nota="Últimos mensajes (máx. 50)" />
+      <Kpi icono="alerta" titulo="En DLT" valor={mensajes ? totalDlt : '…'} nota="Mensajes rechazados por los consumidores" />
     </div>
 
-    <section className="tarjeta kafka-seccion">
-      <h2>Probar manejo de errores</h2>
-      <p className="subtitulo">Publica un mensaje defectuoso. El consumidor lo rechaza sin reintentar (error de formato o validación) y el DefaultErrorHandler lo envía al DLT con la causa en sus cabeceras.</p>
-      <div className="botonera">
-        {TOPICOS_PRINCIPALES.map(t => <span key={t} className="kafka-pruebas">
-          <button className="boton peligro" disabled={enviando} onClick={() => void enviarInvalido(t, 'malformed-json')}>JSON mal formado → {t}</button>
-          <button className="boton secundario" disabled={enviando} onClick={() => void enviarInvalido(t, 'invalid-event')}>Evento inválido → {t}</button>
-        </span>)}
+    <Panel className="kafka-seccion" titulo="Probar manejo de errores"
+      descripcion="Publica un mensaje defectuoso. El consumidor lo rechaza sin reintentar (error de formato o validación) y el DefaultErrorHandler lo envía al DLT con la causa en sus cabeceras.">
+      <div className="kafka-pruebas">
+        {TOPICOS_PRINCIPALES.map(t => <div key={t} className="kafka-prueba">
+          <span>Tópico <code>{t}</code></span>
+          <div className="botonera">
+            <button className="boton peligro chico" disabled={enviando} onClick={() => void enviarInvalido(t, 'malformed-json')}>JSON mal formado → {t}</button>
+            <button className="boton secundario chico" disabled={enviando} onClick={() => void enviarInvalido(t, 'invalid-event')}>Evento inválido → {t}</button>
+          </div>
+        </div>)}
       </div>
-      {envio && <p className="kafka-nota">Enviado a <code>{envio.topic}</code> partición {envio.partition}, offset {envio.offset} ({envio.kind === 'malformed-json' ? 'JSON mal formado' : 'no cumple el DTO'}). Revisa la pestaña DLT.</p>}
-    </section>
+      {envio && <p className="kafka-nota"><Icono nombre="check" />Enviado a <code>{envio.topic}</code> partición {envio.partition}, offset {envio.offset} ({envio.kind === 'malformed-json' ? 'JSON mal formado' : 'no cumple el DTO'}). Revisa la pestaña DLT.</p>}
+    </Panel>
 
-    <section className="tarjeta kafka-seccion">
-      <h2>Mensajes por tópico</h2>
+    <Panel className="kafka-seccion" titulo="Mensajes por tópico" descripcion="Leídos por KafkaMessageMonitor, un @KafkaListener con grupo propio que no interfiere con los consumidores de negocio.">
       <div className="kafka-pestanas" role="tablist">
         {Object.entries(vistas).map(([nombre, vista]) => <button key={nombre} role="tab" aria-selected={seleccion === nombre}
           className={`kafka-pestana${seleccion === nombre ? ' activa' : ''}${vista.deadLetter ? ' dlt' : ''}`} onClick={() => setSeleccion(nombre)}>
-          {vista.deadLetter ? 'DLT · ' : ''}{nombre} <span className="kafka-contador">{vista.messages.length}</span>
+          {vista.deadLetter && <Icono nombre="alerta" tamano={14} />}{vista.deadLetter ? 'DLT · ' : ''}{nombre} <span className="kafka-contador">{vista.messages.length}</span>
         </button>)}
       </div>
-      {!actual ? <p>Cargando…</p> : actual.messages.length === 0 ? <p>Sin mensajes en este tópico.</p> :
+      {!actual ? <Cargando /> : actual.messages.length === 0 ? <EstadoVacio titulo="Sin mensajes en este tópico" icono="kafka" /> :
         <div className="kafka-tabla-contenedor"><table className="kafka-tabla">
           <thead><tr><th>Partición</th><th>Offset</th><th>Clave</th><th>Fecha</th><th>{actual.deadLetter ? 'Origen y causa' : 'Evento'}</th><th>Payload</th></tr></thead>
           <tbody>{actual.messages.map(m => <tr key={`${m.partition}-${m.offset}`}>
             <td>{m.partition}</td><td>{m.offset}</td><td><code>{m.key ?? '-'}</code></td>
-            <td>{new Date(m.timestamp).toLocaleString('es-CL')}</td>
+            <td>{new Date(m.timestamp).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
             <td>{m.deadLetter
-              ? <><strong>{m.deadLetter.originalTopic} p{m.deadLetter.originalPartition} o{m.deadLetter.originalOffset}</strong><br /><small>grupo {m.deadLetter.consumerGroup}</small><br /><span className="texto-error">{causaCorta(m.deadLetter)}</span></>
+              ? <><strong>{m.deadLetter.originalTopic} · p{m.deadLetter.originalPartition} · offset {m.deadLetter.originalOffset}</strong><br /><small className="texto-suave">grupo {m.deadLetter.consumerGroup}</small><span className="kafka-causa">{causaCorta(m.deadLetter)}</span></>
               : resumenEvento(m.value)}</td>
             <td><details><summary>ver</summary><pre className="kafka-payload">{m.value}</pre></details></td>
           </tr>)}</tbody>
         </table></div>}
-    </section>
+    </Panel>
 
-    <section className="tarjeta kafka-seccion">
-      <h2>Consumer groups</h2>
-      <p className="subtitulo">Cada microservicio tiene su grupo: todos reciben todos los eventos (publicación/suscripción) y, dentro de un grupo, las 3 particiones se reparten entre sus consumidores.</p>
-      {grupos.length === 0 ? <p>Sin grupos activos.</p> : <div className="kafka-grupos">{grupos.map(g => <article key={g.groupId} className="kafka-grupo">
+    <Panel className="kafka-seccion" titulo="Consumer groups" descripcion="Cada microservicio tiene su grupo: todos reciben todos los eventos (publicación/suscripción) y, dentro de un grupo, las 3 particiones se reparten entre sus consumidores.">
+      {grupos.length === 0 ? <EstadoVacio titulo="Sin grupos activos" icono="capas" /> : <div className="kafka-grupos">{grupos.map(g => <article key={g.groupId} className="kafka-grupo">
         <h3>{g.groupId}</h3>
-        <p><span className={`kafka-estado ${g.state === 'STABLE' ? 'ok' : ''}`}>{g.state}</span> · {g.members.length} consumidores · lag total {g.totalLag}{g.assignor ? ` · ${g.assignor}` : ''}</p>
-        <table className="kafka-tabla compacta"><thead><tr><th>Tópico</th><th>P</th><th>Commit</th><th>Fin</th><th>Lag</th><th>Consumidor</th></tr></thead>
+        <p><span className={`kafka-estado ${g.state === 'STABLE' ? 'ok' : ''}`}>{g.state}</span><span>{g.members.length} {g.members.length === 1 ? 'consumidor' : 'consumidores'}</span><span>· lag total <strong>{g.totalLag}</strong></span>{g.assignor && <span>· {g.assignor}</span>}</p>
+        <div className="kafka-tabla-contenedor"><table className="kafka-tabla compacta"><thead><tr><th>Tópico</th><th>P</th><th>Commit</th><th>Fin</th><th>Lag</th><th>Consumidor</th></tr></thead>
           <tbody>{g.partitions.map(p => <tr key={`${p.topic}-${p.partition}`}><td>{p.topic}</td><td>{p.partition}</td><td>{p.committedOffset ?? '-'}</td><td>{p.endOffset}</td><td>{p.lag ?? '-'}</td><td><small>{p.clientId ?? '-'}</small></td></tr>)}</tbody>
-        </table>
+        </table></div>
       </article>)}</div>}
-    </section>
+    </Panel>
 
-    <section className="tarjeta kafka-seccion">
-      <h2>Tópicos y configuración</h2>
+    <Panel className="kafka-seccion" titulo="Tópicos y configuración" descripcion="Particiones, réplicas, ISR y políticas de retención de cada tópico.">
       <div className="kafka-tabla-contenedor"><table className="kafka-tabla">
-        <thead><tr><th>Tópico</th><th>Particiones</th><th>Réplicas (líder / ISR)</th>{CONFIG_VISIBLE.map(c => <th key={c}>{c}</th>)}</tr></thead>
+        <thead><tr><th>Tópico</th><th>Particiones</th><th>Líder · réplicas · ISR</th>{CONFIG_VISIBLE.map(c => <th key={c}>{c}</th>)}</tr></thead>
         <tbody>{topicos.map(t => <tr key={t.name}>
           <td><code>{t.name}</code></td><td>{t.partitions.length}</td>
-          <td>{t.partitions.map(p => <div key={p.partition}><small>p{p.partition}: líder {p.leader} · réplicas [{p.replicas.join(',')}] · ISR [{p.isr.join(',')}]</small></div>)}</td>
+          <td><div className="replicas">{t.partitions.map(p => <div key={p.partition}>p{p.partition}: líder {p.leader} <span>· réplicas [{p.replicas.join(',')}] · ISR [{p.isr.join(',')}]</span></div>)}</div></td>
           <td>{t.config['cleanup.policy'] ?? '-'}</td><td>{dias(t.config['retention.ms'])}</td><td>{t.config['min.insync.replicas'] ?? '-'}</td>
         </tr>)}</tbody>
       </table></div>
-    </section>
+    </Panel>
   </>;
 }

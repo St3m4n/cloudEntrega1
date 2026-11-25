@@ -5,6 +5,7 @@ import { mensajeDe, useBff } from '../bff';
 import { catalogoApi, useProductos } from '../catalogo';
 import { ProductCard } from '../components/catalog/ProductCard';
 import { ProductForm } from '../components/catalog/ProductForm';
+import { Icono } from '../components/Icono';
 import { Aviso, Cargando, EncabezadoPagina, EstadoVacio } from '../components/ui';
 import type { Producto, ProductoDatos } from '../tipos';
 
@@ -70,6 +71,7 @@ export function CatalogPage() {
               disabled={ocupado || edicion !== null}
               onClick={() => setEdicion({ modo: 'nuevo' })}
             >
+              <Icono nombre="mas" />
               Nuevo producto
             </button>
           )
@@ -95,15 +97,20 @@ export function CatalogPage() {
       )}
 
       <div className="barra-herramientas">
-        <input
-          type="search"
-          className="buscador"
-          placeholder="Buscar por nombre o categoría"
-          aria-label="Buscar productos"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
+        <div className="buscador-envoltura">
+          <Icono nombre="buscar" />
+          <input
+            type="search"
+            className="buscador"
+            placeholder="Buscar por nombre o categoría"
+            aria-label="Buscar productos"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+        {productos && <span className="chip neutro" style={{ alignSelf: 'center' }}>{filtrados.length} de {productos.length} productos</span>}
         <button className="boton secundario" disabled={ocupado} onClick={recargar}>
+          <Icono nombre="actualizar" />
           Actualizar
         </button>
       </div>
@@ -116,7 +123,7 @@ export function CatalogPage() {
       )}
 
       {productos && filtrados.length === 0 && (
-        <EstadoVacio titulo="No hay productos para mostrar">
+        <EstadoVacio titulo="No hay productos para mostrar" icono="catalogo">
           {busqueda ? 'Prueba con otra búsqueda.' : 'El catálogo está vacío.'}
         </EstadoVacio>
       )}

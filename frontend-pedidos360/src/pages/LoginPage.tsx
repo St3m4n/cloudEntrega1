@@ -4,6 +4,7 @@ import { useMsal } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { tokenRequest } from '../authConfig';
 import { mensajeDe, useCuenta } from '../bff';
+import { Icono, Logo } from '../components/Icono';
 
 export function LoginPage() {
   const { instance, inProgress } = useMsal();
@@ -32,23 +33,52 @@ export function LoginPage() {
 
   return (
     <div className="login">
-      <div className="tarjeta login-tarjeta">
-        <span className="marca marca-grande">Pedidos360</span>
-        <p className="subtitulo">
-          Plataforma de pedidos y despacho para la red de panaderías y cafés.
-        </p>
-        <button
-          className="boton primario boton-grande"
-          disabled={inProgress !== InteractionStatus.None}
-          onClick={() => void entrar()}
-        >
-          Iniciar sesión con Microsoft
-        </button>
-        {error && <p className="texto-error">{error}</p>}
-        <p className="nota">
-          Acceso con cuenta corporativa de Microsoft Entra ID. Tus permisos dependen del rol
-          asignado: Administrador, Operador o Cliente.
-        </p>
+      <section className="login-hero">
+        <div className="marca">
+          <Logo tamano={40} />
+          <div>
+            <span className="marca-nombre">Pedidos360</span>
+            <span className="marca-lema">Panaderías y cafés</span>
+          </div>
+        </div>
+        <div>
+          <h1>Pedidos y despacho en tiempo real</h1>
+          <p>Plataforma de pedidos para la red de panaderías y cafés, desplegada en AWS con microservicios.</p>
+        </div>
+        <ul className="login-puntos">
+          <li>
+            <span className="icono-caja"><Icono nombre="pedidos" /></span>
+            <div><strong>Pedidos de punta a punta</strong><span>Creación, preparación, despacho y entrega con trazabilidad.</span></div>
+          </li>
+          <li>
+            <span className="icono-caja"><Icono nombre="kafka" /></span>
+            <div><strong>Eventos con Kafka y RabbitMQ</strong><span>Auditoría y reportes alimentados por eventos.</span></div>
+          </li>
+          <li>
+            <span className="icono-caja"><Icono nombre="auditoria" /></span>
+            <div><strong>Acceso con Microsoft Entra ID</strong><span>Permisos según el rol de cada usuario.</span></div>
+          </li>
+        </ul>
+      </section>
+      <div className="login-lado">
+        <div className="tarjeta login-tarjeta">
+          <div>
+            <h2>Iniciar sesión</h2>
+            <p className="subtitulo">Usa tu cuenta corporativa de Microsoft.</p>
+          </div>
+          <button
+            className="boton primario boton-grande"
+            disabled={inProgress !== InteractionStatus.None}
+            onClick={() => void entrar()}
+          >
+            <Icono nombre="usuario" />
+            Iniciar sesión con Microsoft
+          </button>
+          {error && <p className="texto-error">{error}</p>}
+          <p className="nota">
+            Tus permisos dependen del rol asignado en Entra ID: Administrador, Operador o Cliente.
+          </p>
+        </div>
       </div>
     </div>
   );

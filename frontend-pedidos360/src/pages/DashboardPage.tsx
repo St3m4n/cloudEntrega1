@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { rolesDe, usePerfil } from '../auth/perfil';
 import { ROLES, tieneAlgunRol } from '../auth/roles';
 import { mensajeDe, useBff, useCuenta } from '../bff';
-import { STOCK_BAJO, useProductos } from '../catalogo';
+import { STOCK_BAJO, formatearPrecio, useProductos } from '../catalogo';
+import { Icono } from '../components/Icono';
+import type { NombreIcono } from '../components/Icono';
 import { OrderList } from '../components/orders/OrderList';
-import { Aviso, Cargando, EncabezadoPagina, Kpi } from '../components/ui';
+import { Aviso, Cargando, Kpi } from '../components/ui';
 import type { Pedido, Producto } from '../tipos';
 
 function usePanel<T>(ruta: string) {
@@ -28,10 +30,13 @@ export function DashboardPage() {
 
   return (
     <>
-      <EncabezadoPagina
-        titulo={`Hola, ${nombre ?? cuenta?.name ?? cuenta?.username ?? ''}`}
-        descripcion="Resumen de actividad según tu rol."
-      />
+      <div className="bienvenida">
+        <div>
+          <h1>Hola, {nombre ?? cuenta?.name ?? cuenta?.username ?? ''}</h1>
+          <p className="subtitulo">Resumen de actividad según tu rol.</p>
+        </div>
+        <span className="chip">{new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+      </div>
 
       {estado.tipo === 'cargando' && <Cargando texto="Cargando tu perfil..." />}
 
@@ -75,21 +80,24 @@ function ResumenAdmin({ productos, error }: ResumenProps) {
   const panel = usePanel<{ ordersCreated: number; sales: number }>('/api/report/kpis?range=last24h');
   return (
     <section className="seccion">
-      <h2>Indicadores globales</h2>
+      <h2 className="seccion-titulo">Indicadores globales</h2>
       <div className="kpis">
-        <Kpi titulo="Productos en catálogo" valor={valorCatalogo(productos, error, (p) => p.length)} />
+        <Kpi icono="catalogo" titulo="Productos en catálogo" valor={valorCatalogo(productos, error, (p) => p.length)} />
         <Kpi
+          icono="capas"
           titulo="Unidades en stock"
           valor={valorCatalogo(productos, error, (p) => p.reduce((suma, x) => suma + x.stock, 0))}
         />
-        <Kpi titulo="Pedidos en 24 horas" valor={panel.datos?.ordersCreated ?? '…'} />
-        <Kpi titulo="Ventas en 24 horas (CLP)" valor={panel.datos?.sales ?? '…'} />
+        <Kpi icono="pedidos" titulo="Pedidos en 24 horas" valor={panel.datos?.ordersCreated ?? '…'} />
+        <Kpi icono="dinero" titulo="Ventas en 24 horas" valor={panel.datos ? formatearPrecio(panel.datos.sales) : '…'} nota="Pedidos entregados" />
       </div>
       {error && <p className="texto-error">Catálogo: {error}</p>}
       {panel.error && <p role="alert" className="texto-error">{panel.error}</p>}
-      <p>
-        <Link to="/reports">Ver reportes</Link> · <Link to="/audit">Ver auditoría</Link>
-      </p>
+      <div className="accesos">
+        <Acceso a="/reports" icono="reportes" titulo="Reportes" texto="Ventas, lead time y productos más vendidos." />
+        <Acceso a="/audit" icono="auditoria" titulo="Auditoría" texto="Historial de eventos de cada pedido." />
+        <Acceso a="/kafka" icono="kafka" titulo="Kafka" texto="Tópicos, DLT y consumer groups en vivo." />
+      </div>
     </section>
   );
 }
@@ -98,19 +106,21 @@ function ResumenOperador({ productos, error }: ResumenProps) {
   const panel = usePanel<Pedido[]>('/api/orders');
   return (
     <section className="seccion">
-      <h2>Operación</h2>
+      <h2 className="seccion-titulo">Operación</h2>
       <div className="kpis">
-        <Kpi titulo="Pedidos en curso" valor={panel.datos?.filter(p => !['ENTREGADO', 'CANCELADO'].includes(p.estado)).length ?? '…'} />
-        <Kpi titulo="Pedidos pendientes de aceptar" valor={panel.datos?.filter(p => p.estado === 'CREADO').length ?? '…'} />
+        <Kpi icono="camion" titulo="Pedidos en curso" valor={panel.datos?.filter(p => !['ENTREGADO', 'CANCELADO'].includes(p.estado)).length ?? '…'} />
+        <Kpi icono="reloj" titulo="Pendientes de aceptar" valor={panel.datos?.filter(p => p.estado === 'CREADO').length ?? '…'} />
         <Kpi
+          icono="alerta"
           titulo={`Productos con stock bajo (< ${STOCK_BAJO})`}
           valor={valorCatalogo(productos, error, (p) => p.filter((x) => x.stock < STOCK_BAJO).length)}
         />
       </div>
       {panel.error && <p role="alert" className="texto-error">{panel.error}</p>}
-      <p>
-        <Link to="/orders">Ir a pedidos</Link> · <Link to="/catalog">Ir al catálogo</Link>
-      </p>
+      <div className="accesos">
+        <Acceso a="/orders" icono="pedidos" titulo="Pedidos" texto="Acepta, prepara y despacha pedidos." />
+        <Acceso a="/catalog" icono="catalogo" titulo="Catálogo" texto="Productos, precios y stock." />
+      </div>
     </section>
   );
 }
@@ -119,12 +129,24 @@ function ResumenCliente() {
   const panel = usePanel<Pedido[]>('/api/orders');
   return (
     <section className="seccion">
-      <h2>Tus últimos pedidos</h2>
+      <h2 className="seccion-titulo">Tus últimos pedidos</h2>
       {panel.error && <p role="alert" className="texto-error">{panel.error}</p>}
       <OrderList pedidos={panel.datos?.slice(0, 5) ?? []} />
-      <p>
-        <Link to="/orders">Ver todos mis pedidos</Link>
-      </p>
+      <div className="accesos">
+        <Acceso a="/orders" icono="pedidos" titulo="Mis pedidos" texto="Crea un pedido o revisa su estado." />
+      </div>
     </section>
+  );
+}
+
+function Acceso({ a, icono, titulo, texto }: { a: string; icono: NombreIcono; titulo: string; texto: string }) {
+  return (
+    <Link to={a} className="acceso">
+      <span className="acceso-icono"><Icono nombre={icono} /></span>
+      <div>
+        <strong>{titulo}</strong>
+        <span>{texto}</span>
+      </div>
+    </Link>
   );
 }

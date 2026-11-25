@@ -13,24 +13,24 @@ export function OrderList({ pedidos }: { pedidos: Pedido[] }) {
   }
 
   return (
-    <div className="tabla-contenedor">
+    <div className="tarjeta tabla-contenedor tabla-tarjeta">
       <table className="tabla">
         <thead>
           <tr>
             <th>N.º</th>
             <th>Cliente</th>
             <th>Fecha</th>
-            <th>Total</th>
+            <th className="numero">Total</th>
             <th>Estado</th>
           </tr>
         </thead>
         <tbody>
           {pedidos.map((pedido) => (
             <tr key={pedido.id}>
-              <td>{pedido.id}</td>
+              <td><strong>#{pedido.id}</strong></td>
               <td>{pedido.cliente}</td>
               <td>{new Date(pedido.creadoEn).toLocaleString('es-CL')}</td>
-              <td>{formatearPrecio(pedido.total)}</td>
+              <td className="numero">{formatearPrecio(pedido.total)}</td>
               <td>
                 <OrderStatusBadge estado={pedido.estado} />
               </td>

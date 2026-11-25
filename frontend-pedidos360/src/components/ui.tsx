@@ -1,7 +1,14 @@
 import type { ReactNode } from 'react';
+import { Icono } from './Icono';
+import type { NombreIcono } from './Icono';
 
 export function Cargando({ texto = 'Cargando...' }: { texto?: string }) {
-  return <p className="cargando" role="status">{texto}</p>;
+  return (
+    <p className="cargando" role="status">
+      <span className="spinner" aria-hidden="true" />
+      {texto}
+    </p>
+  );
 }
 
 export function Aviso({
@@ -15,25 +22,50 @@ export function Aviso({
 }) {
   return (
     <div className={`aviso aviso-${tipo}`} role={tipo === 'error' ? 'alert' : 'note'}>
-      <strong>{titulo}</strong>
-      {children && <div className="aviso-cuerpo">{children}</div>}
+      <Icono nombre={tipo === 'error' ? 'alerta' : 'check'} />
+      <div>
+        <strong>{titulo}</strong>
+        {children && <div className="aviso-cuerpo">{children}</div>}
+      </div>
     </div>
   );
 }
 
-export function EstadoVacio({ titulo, children }: { titulo: string; children?: ReactNode }) {
+export function EstadoVacio({
+  titulo,
+  icono = 'capas',
+  children,
+}: {
+  titulo: string;
+  icono?: NombreIcono;
+  children?: ReactNode;
+}) {
   return (
     <div className="vacio">
+      <span className="vacio-icono"><Icono nombre={icono} tamano={22} /></span>
       <p className="vacio-titulo">{titulo}</p>
       {children && <p className="vacio-texto">{children}</p>}
     </div>
   );
 }
 
-export function Kpi({ titulo, valor, nota }: { titulo: string; valor: ReactNode; nota?: string }) {
+export function Kpi({
+  titulo,
+  valor,
+  nota,
+  icono,
+}: {
+  titulo: string;
+  valor: ReactNode;
+  nota?: string;
+  icono?: NombreIcono;
+}) {
   return (
     <div className="kpi">
-      <span className="kpi-titulo">{titulo}</span>
+      <div className="kpi-cabecera">
+        <span className="kpi-titulo">{titulo}</span>
+        {icono && <span className="kpi-icono"><Icono nombre={icono} /></span>}
+      </div>
       <span className="kpi-valor">{valor}</span>
       {nota && <span className="kpi-nota">{nota}</span>}
     </div>
@@ -57,5 +89,35 @@ export function EncabezadoPagina({
       </div>
       {acciones && <div className="encabezado-acciones">{acciones}</div>}
     </div>
+  );
+}
+
+/** Tarjeta con título y acciones opcionales a la derecha. */
+export function Panel({
+  titulo,
+  descripcion,
+  acciones,
+  children,
+  className = '',
+}: {
+  titulo?: string;
+  descripcion?: string;
+  acciones?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`tarjeta panel ${className}`}>
+      {(titulo || acciones) && (
+        <div className="panel-cabecera">
+          <div>
+            {titulo && <h2>{titulo}</h2>}
+            {descripcion && <p className="subtitulo">{descripcion}</p>}
+          </div>
+          {acciones && <div className="panel-acciones">{acciones}</div>}
+        </div>
+      )}
+      {children}
+    </section>
   );
 }

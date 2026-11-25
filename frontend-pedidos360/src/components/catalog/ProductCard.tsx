@@ -1,5 +1,6 @@
 import { STOCK_BAJO, formatearPrecio } from '../../catalogo';
 import type { Producto } from '../../tipos';
+import { Icono } from '../Icono';
 
 interface Props {
   producto: Producto;
@@ -14,34 +15,39 @@ export function ProductCard({ producto, onEditar, onEliminar, deshabilitado }: P
   return (
     <article className="tarjeta producto">
       <div className="producto-cabecera">
-        <h3>{producto.nombre}</h3>
-        <span className="chip">{producto.categoria}</span>
+        <span className="producto-inicial" aria-hidden="true">{producto.nombre.charAt(0).toUpperCase()}</span>
+        <div className="producto-titulo">
+          <h3>{producto.nombre}</h3>
+          <span className="chip neutro">{producto.categoria}</span>
+        </div>
       </div>
       {producto.descripcion && <p className="producto-descripcion">{producto.descripcion}</p>}
       <div className="producto-datos">
         <span className="producto-precio">{formatearPrecio(producto.precio)}</span>
         <span className={stockBajo ? 'stock stock-bajo' : 'stock'}>
-          Stock: {producto.stock}
-          {stockBajo && ' (bajo)'}
+          {stockBajo && <Icono nombre="alerta" tamano={13} />}
+          {producto.stock} en stock
         </span>
       </div>
       {(onEditar || onEliminar) && (
         <div className="producto-acciones">
           {onEditar && (
             <button
-              className="boton secundario"
+              className="boton secundario chico"
               disabled={deshabilitado}
               onClick={() => onEditar(producto)}
             >
+              <Icono nombre="editar" tamano={15} />
               Editar
             </button>
           )}
           {onEliminar && (
             <button
-              className="boton peligro"
+              className="boton peligro chico"
               disabled={deshabilitado}
               onClick={() => onEliminar(producto)}
             >
+              <Icono nombre="basura" tamano={15} />
               Eliminar
             </button>
           )}
